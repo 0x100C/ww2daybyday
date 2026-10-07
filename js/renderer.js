@@ -132,7 +132,7 @@ void main(){
     float line = smoothstep(0.0, 0.14, h) * smoothstep(0.30, 0.14, h);
     float dash = smoothstep(0.0, 0.08, fract((px.x - px.y) / (16.0 * uPx))) *
                  smoothstep(0.62, 0.54, fract((px.x - px.y) / (16.0 * uPx)));
-    wcol = mix(wcol, vec3(188.0, 201.0, 224.0) / 255.0, line * dash * 0.55);
+    wcol = mix(wcol, vec3(176.0, 191.0, 218.0) / 255.0, line * dash * 0.85);
   }
   vec3 c = mix(land, wcol, wmask);
   // ink: built-up areas, roads, railways and the coastline
