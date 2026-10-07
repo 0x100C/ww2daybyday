@@ -43,8 +43,11 @@ def sep28_line():
         + river(BUG, (52.69, 22.22), (52.08, 23.64))
         + river(BUG, (52.08, 23.64), (50.40, 24.24))
         + [(50.36, 23.90), (50.33, 23.55), (50.25, 23.25), (50.20, 23.05), (50.10, 22.88)]
-        + river("San", (49.97, 22.84), (49.03, 22.87))
-        + [(48.95, 22.88)]
+        # San upstream only as far as Sanok, then south to the Slovak border: the
+        # Lesko/Bieszczady strip west of the upper San (German under the treaty)
+        # is given to the Soviet side, matching the reference video
+        + river("San", (49.97, 22.84), (49.56, 22.21))
+        + [(49.45, 22.28), (49.30, 22.38), (49.17, 22.48), (49.08, 22.56), (48.95, 22.60)]
     )
 
 

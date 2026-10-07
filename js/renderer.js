@@ -113,12 +113,28 @@ vec3 ownerCell(ivec2 c, vec2 g){
 vec4 pal(float id){ return texelFetch(uPal, ivec2(int(id), 0), 0); }
 bool atWar(float a, float b){ return texelFetch(uWar, ivec2(int(a), int(b)), 0).r > 0.5; }
 
+uniform sampler2D uOwn;      // pass 1 output: smoothed control id, country id, pending
+vec3 ownPx(ivec2 p){
+  vec4 v = texelFetch(uOwn, clamp(p, ivec2(0), ivec2(uRes) - 1), 0);
+  return vec3(floor(v.x * 255.0 + 0.5), floor(v.y * 255.0 + 0.5), v.z);
+}
+
+#ifdef PASS_OWN
+// Pass 1: smoothed ownership once per pixel (4 cells), read by pass 2 for the
+// pixel itself and its edge neighbours instead of re-evaluating 5 x 4 cells.
+void main(){
+  vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  vec3 me = ownerAt(gridAt(px));
+  o = vec4(me.x / 255.0, me.y / 255.0, me.z, 1.0);
+}
+#else
 void main(){
   vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
   vec4 ter = texelFetch(uTerrain, ivec2(gl_FragCoord.xy), 0);
   float L = ter.r, ink = ter.g, water = ter.b, snow = ter.a;
   vec2 g = gridAt(px);
-  vec3 me = ownerAt(g);
+  ivec2 fc = ivec2(gl_FragCoord.xy);
+  vec3 me = ownPx(fc);
   vec4 pc = pal(me.x);
   vec3 col = pc.rgb;
   // soft advancing edge: blend old/new owner colour across ~1.5 px of the moving arrival front
@@ -145,7 +161,7 @@ void main(){
   vec2 offs[4] = vec2[](vec2(d,0.0), vec2(-d,0.0), vec2(0.0,d), vec2(0.0,-d));
   float front = 0.0, edge = 0.0, border = 0.0;
   for (int i = 0; i < 4; i++){
-    vec3 n = ownerAt(gridAt(px + offs[i]));
+    vec3 n = ownPx(fc + ivec2(int(offs[i].x), -int(offs[i].y)));
     if (n.x != me.x){
       if (atWar(me.x, n.x)) front = 1.0;
       else if (pc.a < 0.5) edge = 1.0;
@@ -164,7 +180,8 @@ void main(){
   if (uBorders > 0.5) c = mix(c, vec3(0.93, 0.52, 0.52), border * 0.62 * onLand);
   if (uFronts > 0.5) c = mix(c, vec3(1.0), front * 0.95 * onLand);
   o = vec4(c, 1.0);
-}`;
+}
+#endif`;
 
 function compile(gl, type, src) {
   const s = gl.createShader(type);
@@ -218,6 +235,7 @@ export class Renderer {
     gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 16, 8);
     gl.bindVertexArray(null);
     this.progMap = program(gl, VS, FS_MAP);
+    this.progOwn = program(gl, VS, FS_MAP.replace('#version 300 es', '#version 300 es\n#define PASS_OWN'));
     const quad = new Float32Array([0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0]);
     // aPos (x,y), aUv: tile uv where v=0 is the image top
     const buf = gl.createBuffer();
@@ -321,6 +339,14 @@ export class Renderer {
     this.fbo = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texTerrain, 0);
+    if (this.fboOwn) { gl.deleteFramebuffer(this.fboOwn); gl.deleteTexture(this.texOwn); }
+    this.texOwn = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.texOwn);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, this.canvas.width, this.canvas.height);
+    for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, p, gl.NEAREST);
+    this.fboOwn = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fboOwn);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texOwn, 0);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
@@ -430,18 +456,9 @@ export class Renderer {
   draw(tn) {
     const gl = this.gl, W = this.canvas.width, H = this.canvas.height;
     if (this.terrainDirty) { this.terrainDirty = false; this._drawTerrain(); }
-    gl.viewport(0, 0, W, H);
-    gl.useProgram(this.progMap.p);
-    const u = this.progMap.u;
     const c = this.cam, s = c.s * this.dpr;
     const wx0 = c.x - W / 2 / s, wy0 = c.y - H / 2 / s;
     const gsx = this.gridW / (GEO.MX1 - GEO.MX0), gsy = this.gridH / (GEO.MY1 - GEO.MY0);
-    gl.uniform2f(u.uRes, W, H);
-    gl.uniform2f(u.uGridSize, this.gridW, this.gridH);
-    gl.uniform2f(u.uW0, wx0, wy0);
-    gl.uniform2f(u.uWs, 1 / s, 1 / s);
-    gl.uniform2f(u.uM0, GEO.MX0, GEO.MY0);
-    gl.uniform2f(u.uGsc, gsx, gsy);
     // per-row grid y (Miller display row -> latitude -> Mercator grid row)
     const rowKey = `${c.y},${s},${H}`;
     if (rowKey !== this.rowKey) {
@@ -463,18 +480,28 @@ export class Renderer {
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, H, 1, gl.RED, gl.FLOAT, rows);
     }
-    gl.uniform1f(u.uTn, tn);
-    gl.uniform1f(u.uPx, this.dpr);
-    gl.uniform1f(u.uBorders, this.opts.borders ? 1 : 0);
-    gl.uniform1f(u.uFronts, this.opts.fronts ? 1 : 0);
-    const bind = (unit, tex, name) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(u[name], unit); };
-    bind(0, this.texTerrain, 'uTerrain');
-    bind(1, this.texState, 'uState');
-    bind(2, this.texTime, 'uTime');
-    bind(3, this.texPal, 'uPal');
-    bind(4, this.texWar, 'uWar');
-    bind(5, this.texRow, 'uRowY');
-    gl.uniform4f(u.uRect, -1, -1, 1, 1);
+    const setup = (prog) => {
+      gl.useProgram(prog.p);
+      const u = prog.u;
+      const f2 = (n, a, b) => { if (u[n]) gl.uniform2f(u[n], a, b); };
+      const f1 = (n, a) => { if (u[n]) gl.uniform1f(u[n], a); };
+      f2('uRes', W, H); f2('uGridSize', this.gridW, this.gridH); f2('uW0', wx0, wy0); f2('uWs', 1 / s, 1 / s);
+      f2('uM0', GEO.MX0, GEO.MY0); f2('uGsc', gsx, gsy);
+      f1('uTn', tn); f1('uPx', this.dpr); f1('uBorders', this.opts.borders ? 1 : 0); f1('uFronts', this.opts.fronts ? 1 : 0);
+      const bind = (unit, tex, name) => { if (!u[name]) return; gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(u[name], unit); };
+      bind(0, this.texTerrain, 'uTerrain'); bind(1, this.texState, 'uState'); bind(2, this.texTime, 'uTime');
+      bind(3, this.texPal, 'uPal'); bind(4, this.texWar, 'uWar'); bind(5, this.texRow, 'uRowY'); bind(6, this.texOwn, 'uOwn');
+      if (u.uRect) gl.uniform4f(u.uRect, -1, -1, 1, 1);
+    };
+    gl.viewport(0, 0, W, H);
+    // pass 1: smoothed ownership per pixel
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fboOwn);
+    setup(this.progOwn);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // pass 2: colours, pale band, fronts and borders from pass 1
+    setup(this.progMap);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
+
 }
