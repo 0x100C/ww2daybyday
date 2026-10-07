@@ -8,7 +8,7 @@
 // Pass 2 (every frame): one full-screen shader colours land by the
 // controlling power on the territory grid, draws the pale band over ground
 // that is being taken, white front lines between powers at war, pink
-// national borders and the water hatch and coastline.
+// national borders and the coastline.
 
 import { GEO, millerY, invMercY } from './geo.js';
 
@@ -49,7 +49,7 @@ uniform vec2 uM0;           // mercator coords of the grid origin
 uniform vec2 uGsc;          // grid cells per mercator unit
 uniform float uTn;          // time within the current one-day window, 0..1
 uniform float uPx;          // device pixel ratio
-uniform float uBorders, uFronts, uHatch;
+uniform float uBorders, uFronts;
 
 const float PI = 3.14159265358979;
 // screen pixel -> territory grid coords. x is linear; the Miller -> Mercator
@@ -126,15 +126,6 @@ void main(){
 
   float wmask = clamp((water - 0.5) * 1.6 + 0.5, 0.0, 1.0);
   vec3 wcol = vec3(218.0, 227.0, 241.0) / 255.0;
-  if (uHatch > 0.5) {
-    // dashed diagonal hatch, matched to the reference: "\\" lines ~6 px apart,
-    // dashes ~13 px long with ~4 px gaps, muted blue-grey
-    float u = (px.x - px.y) / (6.0 * uPx);
-    float line = smoothstep(0.0, 0.12, fract(u)) * smoothstep(0.42, 0.28, fract(u));
-    float v = fract((px.x + px.y) / (24.0 * uPx));
-    float dash = smoothstep(0.0, 0.04, v) * smoothstep(0.80, 0.74, v);
-    wcol = mix(wcol, vec3(182.0, 199.0, 225.0) / 255.0, line * dash * 0.8);
-  }
   vec3 c = mix(land, wcol, wmask);
   // ink: built-up areas, roads, railways and the coastline
   c *= 1.0 - ink * (pc.a > 0.5 ? 0.36 : 0.44);
@@ -218,7 +209,7 @@ export class Renderer {
     this.terrainDirty = true;
     this.cam = { x: 0.5, y: 0.5, s: 4096 };
     this.dpr = 1;
-    this.opts = { borders: true, fronts: true, hatch: true };
+    this.opts = { borders: true, fronts: true };
   }
 
   // ---------------------------------------------------------------- grid
@@ -446,7 +437,6 @@ export class Renderer {
     gl.uniform1f(u.uPx, this.dpr);
     gl.uniform1f(u.uBorders, this.opts.borders ? 1 : 0);
     gl.uniform1f(u.uFronts, this.opts.fronts ? 1 : 0);
-    gl.uniform1f(u.uHatch, this.opts.hatch ? 1 : 0);
     const bind = (unit, tex, name) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(u[name], unit); };
     bind(0, this.texTerrain, 'uTerrain');
     bind(1, this.texState, 'uState');

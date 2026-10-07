@@ -117,7 +117,7 @@ async function main() {
     const day = Math.floor(app.t * 4) / 4;
     if (day !== app.warDay) { r.uploadWar(warMatrix(meta.units, app.t)); app.warDay = day; }
     // redraw the map only when something it depends on changed (time, camera, toggles, data)
-    const camKey = `${r.cam.x},${r.cam.y},${r.cam.s},${r.canvas.width},${r.canvas.height},${r.opts.borders}${r.opts.fronts}${r.opts.hatch}`;
+    const camKey = `${r.cam.x},${r.cam.y},${r.cam.s},${r.canvas.width},${r.canvas.height},${r.opts.borders}${r.opts.fronts}`;
     if (app.t !== app.drawnT || camKey !== app.drawnCam || r.terrainDirty || app.win !== app.drawnWin) {
       r.draw(app.t - app.win);
       app.drawnT = app.t; app.drawnCam = camKey; app.drawnWin = app.win;
@@ -280,7 +280,6 @@ async function main() {
   $('reset').addEventListener('click', () => fitCamera(r, canvas.clientWidth, canvas.clientHeight));
   $('opt-borders').addEventListener('change', (e) => { r.opts.borders = e.target.checked; });
   $('opt-fronts').addEventListener('change', (e) => { r.opts.fronts = e.target.checked; });
-  $('opt-hatch').addEventListener('change', (e) => { r.opts.hatch = e.target.checked; });
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
     if (e.code === 'Space') { app.playing = !app.playing; e.preventDefault(); }
