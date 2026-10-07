@@ -1,0 +1,260 @@
+"""Gazetteer of places used to author front lines (lat, lon, WGS84).
+
+P('Kiev')            -> (50.45, 30.52)
+P('Kiev', 'W15')     -> 15 km west of Kiev  (N, S, E, W, NE, NW, SE, SW + km)
+L('Orel', 'Kursk')   -> list of points
+"""
+import math
+
+G = {
+    # ---------------- Poland / Germany / Baltic ----------------
+    "Warsaw": (52.23, 21.01), "Modlin": (52.44, 20.70), "Lodz": (51.76, 19.46), "Krakow": (50.06, 19.94),
+    "Lublin": (51.25, 22.57), "Radom": (51.40, 21.15), "Kielce": (50.87, 20.63), "Czestochowa": (50.81, 19.12),
+    "Poznan": (52.41, 16.93), "Bydgoszcz": (53.12, 18.01), "Torun": (53.01, 18.60), "Gdynia": (54.52, 18.53),
+    "Danzig": (54.35, 18.65), "Lwow": (49.84, 24.03), "Przemysl": (49.78, 22.77), "Rzeszow": (50.04, 22.00),
+    "Tarnow": (50.01, 20.99), "Sandomierz": (50.68, 21.75), "Pulawy": (51.42, 21.97), "Deblin": (51.56, 21.85),
+    "Siedlce": (52.17, 22.28), "Brest": (52.10, 23.69), "Bialystok": (53.13, 23.16), "Grodno": (53.68, 23.83),
+    "Lomza": (53.18, 22.07), "Ostroleka": (53.09, 21.57), "Pultusk": (52.70, 21.08), "Plock": (52.55, 19.70),
+    "Kutno": (52.23, 19.36), "Sochaczew": (52.23, 20.24), "Lowicz": (52.11, 19.94), "Piotrkow": (51.40, 19.70),
+    "Chelm": (51.14, 23.47), "Zamosc": (50.72, 23.25), "Kowel": (51.21, 24.71), "Lutsk": (50.75, 25.33),
+    "Rovno": (50.62, 26.25), "Dubno": (50.42, 25.73), "Brody": (50.08, 25.15), "Ternopol": (49.55, 25.59),
+    "Stanislawow": (48.92, 24.71), "Kolomyja": (48.53, 25.04), "Stryj": (49.26, 23.85), "Sambor": (49.52, 23.20),
+    "Drohobycz": (49.35, 23.50), "Sanok": (49.56, 22.21), "Jaslo": (49.75, 21.47), "Nowy Sacz": (49.62, 20.69),
+    "Tarnopol": (49.55, 25.59), "Rawa Ruska": (50.23, 23.62), "Sokal": (50.48, 24.28), "Vladimir-Volynsky": (50.85, 24.32),
+    "Pinsk": (52.11, 26.10), "Baranovichi": (53.13, 26.01), "Lida": (53.89, 25.30), "Vilnius": (54.69, 25.28),
+    "Kaunas": (54.90, 23.90), "Siauliai": (55.93, 23.31), "Memel": (55.71, 21.13), "Tilsit": (55.08, 21.88),
+    "Konigsberg": (54.71, 20.51), "Gumbinnen": (54.59, 22.20), "Insterburg": (54.63, 21.81), "Allenstein": (53.78, 20.49),
+    "Elbing": (54.16, 19.40), "Marienburg": (54.04, 19.03), "Pillau": (54.64, 19.90), "Heiligenbeil": (54.39, 20.04),
+    "Goldap": (54.31, 22.31), "Lyck": (53.83, 22.36), "Suwalki": (54.10, 22.93), "Augustow": (53.84, 22.98),
+    "Riga": (56.95, 24.11), "Daugavpils": (55.87, 26.54), "Liepaja": (56.51, 21.01), "Ventspils": (57.39, 21.56),
+    "Jelgava": (56.65, 23.72), "Tukums": (56.97, 23.15), "Mitau": (56.65, 23.72), "Tallinn": (59.44, 24.75),
+    "Tartu": (58.38, 26.72), "Parnu": (58.39, 24.50), "Narva": (59.38, 28.19), "Valga": (57.78, 26.05),
+    "Rezekne": (56.51, 27.33), "Pskov": (57.82, 28.33), "Ostrov": (57.34, 28.35), "Opochka": (56.71, 28.67),
+    "Berlin": (52.52, 13.40), "Stettin": (53.43, 14.55), "Kustrin": (52.57, 14.63), "Frankfurt Oder": (52.34, 14.55),
+    "Breslau": (51.11, 17.03), "Oppeln": (50.67, 17.93), "Glogau": (51.66, 16.08), "Posen": (52.41, 16.93),
+    "Kolberg": (54.18, 15.58), "Koslin": (54.19, 16.17), "Stolp": (54.46, 17.03), "Schneidemuhl": (53.15, 16.74),
+    "Landsberg": (52.73, 15.24), "Guben": (51.95, 14.72), "Cottbus": (51.76, 14.33), "Gorlitz": (51.15, 14.99),
+    "Dresden": (51.05, 13.74), "Leipzig": (51.34, 12.37), "Torgau": (51.56, 13.00), "Magdeburg": (52.13, 11.62),
+    "Hamburg": (53.55, 9.99), "Bremen": (53.08, 8.80), "Hanover": (52.37, 9.73), "Kiel": (54.32, 10.14),
+    "Lubeck": (53.87, 10.69), "Wismar": (53.89, 11.47), "Rostock": (54.09, 12.10), "Stralsund": (54.31, 13.09),
+    "Schwerin": (53.63, 11.41), "Wittenberge": (53.00, 11.75), "Dessau": (51.84, 12.24), "Halle": (51.48, 11.97),
+    "Erfurt": (50.98, 11.03), "Kassel": (51.31, 9.48), "Frankfurt": (50.11, 8.68), "Mainz": (50.00, 8.27),
+    "Koblenz": (50.36, 7.59), "Cologne": (50.94, 6.96), "Bonn": (50.73, 7.10), "Remagen": (50.58, 7.23),
+    "Dusseldorf": (51.23, 6.78), "Duisburg": (51.43, 6.76), "Wesel": (51.66, 6.62), "Essen": (51.46, 7.01),
+    "Dortmund": (51.51, 7.47), "Munster": (51.96, 7.63), "Paderborn": (51.72, 8.75), "Aachen": (50.78, 6.08),
+    "Trier": (49.75, 6.64), "Saarbrucken": (49.23, 7.00), "Karlsruhe": (49.01, 8.40), "Mannheim": (49.49, 8.47),
+    "Stuttgart": (48.78, 9.18), "Nuremberg": (49.45, 11.08), "Munich": (48.14, 11.58), "Augsburg": (48.37, 10.90),
+    "Ulm": (48.40, 9.99), "Regensburg": (49.01, 12.10), "Passau": (48.57, 13.43), "Linz": (48.31, 14.29),
+    "Vienna": (48.21, 16.37), "Graz": (47.07, 15.44), "Innsbruck": (47.27, 11.39), "Salzburg": (47.81, 13.04),
+    "Klagenfurt": (46.62, 14.31), "Freiburg": (47.99, 7.85), "Strasbourg": (48.58, 7.75), "Colmar": (48.08, 7.36),
+    "Mulhouse": (47.75, 7.34), "Metz": (49.12, 6.18), "Nancy": (48.69, 6.18), "Luxembourg": (49.61, 6.13),
+    "Prague": (50.08, 14.42), "Brno": (49.19, 16.61), "Pilsen": (49.75, 13.38), "Olomouc": (49.59, 17.25),
+    "Ostrava": (49.83, 18.29), "Bratislava": (48.15, 17.11), "Kosice": (48.72, 21.26), "Presov": (49.00, 21.24),
+    "Zvolen": (48.58, 19.13), "Banska Bystrica": (48.74, 19.15), "Zilina": (49.22, 18.74), "Nitra": (48.31, 18.09),
+    "Uzhhorod": (48.62, 22.29), "Mukachevo": (48.44, 22.72), "Budapest": (47.50, 19.04), "Szekesfehervar": (47.19, 18.41),
+    "Lake Balaton": (46.90, 17.80), "Gyor": (47.69, 17.63), "Debrecen": (47.53, 21.63), "Szeged": (46.25, 20.15),
+    "Miskolc": (48.10, 20.78), "Nagykanizsa": (46.45, 16.99), "Pecs": (46.07, 18.23), "Esztergom": (47.79, 18.74),
+    # ---------------- Low countries / France / Britain ----------------
+    "Amsterdam": (52.37, 4.90), "Rotterdam": (51.92, 4.48), "The Hague": (52.08, 4.30), "Utrecht": (52.09, 5.12),
+    "Arnhem": (51.98, 5.91), "Nijmegen": (51.84, 5.86), "Eindhoven": (51.44, 5.48), "Maastricht": (50.85, 5.69),
+    "Breda": (51.59, 4.78), "Groningen": (53.22, 6.57), "Den Helder": (52.96, 4.76), "Flushing": (51.44, 3.57),
+    "Antwerp": (51.22, 4.40), "Brussels": (50.85, 4.35), "Ghent": (51.05, 3.72), "Bruges": (51.21, 3.22),
+    "Ostend": (51.22, 2.92), "Liege": (50.63, 5.57), "Namur": (50.47, 4.87), "Charleroi": (50.41, 4.44),
+    "Mons": (50.45, 3.95), "Bastogne": (50.00, 5.72), "St Vith": (50.28, 6.13), "Dinant": (50.26, 4.91),
+    "Sedan": (49.70, 4.94), "Dunkirk": (51.03, 2.38), "Calais": (50.95, 1.86), "Boulogne": (50.73, 1.61),
+    "Abbeville": (50.11, 1.83), "Amiens": (49.89, 2.30), "Arras": (50.29, 2.78), "Lille": (50.63, 3.06),
+    "Cambrai": (50.18, 3.23), "St Quentin": (49.85, 3.29), "Laon": (49.56, 3.62), "Reims": (49.26, 4.03),
+    "Rouen": (49.44, 1.10), "Le Havre": (49.49, 0.11), "Dieppe": (49.92, 1.08), "Paris": (48.86, 2.35),
+    "Chateau-Thierry": (49.05, 3.40), "Verdun": (49.16, 5.38), "Chalons": (48.96, 4.36), "Troyes": (48.30, 4.08),
+    "Dijon": (47.32, 5.04), "Besancon": (47.24, 6.02), "Belfort": (47.64, 6.86), "Epinal": (48.17, 6.45),
+    "Orleans": (47.90, 1.91), "Tours": (47.39, 0.69), "Le Mans": (48.00, 0.20), "Rennes": (48.11, -1.68),
+    "Brest FR": (48.39, -4.49), "Lorient": (47.75, -3.37), "St Nazaire": (47.27, -2.21), "Nantes": (47.22, -1.55),
+    "Cherbourg": (49.64, -1.62), "Caen": (49.18, -0.37), "Bayeux": (49.28, -0.70), "Carentan": (49.30, -1.25),
+    "St Lo": (49.12, -1.09), "Avranches": (48.68, -1.36), "Falaise": (48.90, -0.19), "Argentan": (48.74, -0.02),
+    "Alencon": (48.43, 0.09), "Chartres": (48.44, 1.49), "La Rochelle": (46.16, -1.15), "Royan": (45.62, -1.03),
+    "Bordeaux": (44.84, -0.58), "Poitiers": (46.58, 0.34), "Limoges": (45.83, 1.26), "Vichy": (46.13, 3.43),
+    "Moulins": (46.57, 3.33), "Lyon": (45.76, 4.84), "Grenoble": (45.19, 5.72), "Marseille": (43.30, 5.37),
+    "Toulon": (43.12, 5.93), "Nice": (43.70, 7.27), "Menton": (43.78, 7.50), "Toulouse": (43.60, 1.44),
+    "Montpellier": (43.61, 3.88), "Avignon": (43.95, 4.81), "Geneva": (46.20, 6.14), "Chambery": (45.57, 5.92),
+    "Bourges": (47.08, 2.40), "Nevers": (46.99, 3.16), "Chalon": (46.78, 4.85), "Macon": (46.31, 4.83),
+    "Clermont": (45.78, 3.08), "Angouleme": (45.65, 0.16), "Mont-de-Marsan": (43.89, -0.50), "Hendaye": (43.36, -1.77),
+    "London": (51.51, -0.13), "Dover": (51.13, 1.31),
+    # ---------------- Scandinavia ----------------
+    "Oslo": (59.91, 10.75), "Kristiansand": (58.15, 8.00), "Stavanger": (58.97, 5.73), "Bergen": (60.39, 5.32),
+    "Trondheim": (63.43, 10.40), "Namsos": (64.47, 11.50), "Mosjoen": (65.84, 13.19), "Mo i Rana": (66.31, 14.14),
+    "Bodo": (67.28, 14.40), "Narvik": (68.44, 17.43), "Tromso": (69.65, 18.96), "Kirkenes": (69.73, 30.05),
+    "Andalsnes": (62.57, 7.69), "Lillehammer": (61.11, 10.47), "Hamar": (60.79, 11.07), "Elverum": (60.88, 11.56),
+    "Kongsberg": (59.67, 9.65), "Steinkjer": (64.01, 11.50), "Dombas": (62.07, 9.12), "Roros": (62.57, 11.38),
+    "Copenhagen": (55.68, 12.57), "Stockholm": (59.33, 18.07),
+    "Helsinki": (60.17, 24.94), "Vyborg": (60.71, 28.75), "Viipuri": (60.71, 28.75), "Sortavala": (61.70, 30.69),
+    "Kexholm": (61.03, 30.12), "Terijoki": (60.17, 29.70), "Summa": (60.55, 28.93), "Taipale": (60.50, 30.48),
+    "Petrozavodsk": (61.79, 34.36), "Medvezhyegorsk": (62.91, 34.46), "Olonets": (60.98, 32.97), "Lodeynoye Pole": (60.73, 33.55),
+    "Svir": (60.80, 33.70), "Suomussalmi": (64.89, 28.91), "Salla": (66.83, 28.67), "Kandalaksha": (67.15, 32.41),
+    "Kestenga": (65.89, 31.84), "Murmansk": (68.97, 33.08), "Petsamo": (69.50, 31.20), "Ukhta": (64.77, 30.68),
+    "Rovaniemi": (66.50, 25.73), "Oulu": (65.01, 25.47), "Kuhmo": (64.13, 29.52), "Ilomantsi": (62.67, 30.93),
+    "Tolvajarvi": (62.22, 31.50), "Salmi": (61.37, 31.86), "Pitkaranta": (61.57, 31.48), "Loimola": (62.15, 31.78),
+    "Kollaa": (62.05, 31.40), "Sestroretsk": (60.10, 29.96), "Kuolajarvi": (66.97, 29.20), "Rugozero": (63.75, 32.67),
+    "Maaselka": (63.15, 34.30), "Povenets": (62.85, 34.82), "Segezha": (63.74, 34.31), "Kem": (64.95, 34.58),
+    "Loukhi": (66.07, 33.04), "Alakurtti": (66.96, 30.35), "Zapadnaya Litsa": (69.42, 32.40), "Titovka": (69.53, 31.98),
+    # ---------------- USSR ----------------
+    "Leningrad": (59.94, 30.31), "Kolpino": (59.75, 30.60), "Pushkin": (59.72, 30.41), "Peterhof": (59.88, 29.91),
+    "Oranienbaum": (59.92, 29.77), "Krasnoe Selo": (59.73, 30.08), "Uritsk": (59.85, 30.17), "Pulkovo": (59.78, 30.32),
+    "Shlisselburg": (59.94, 31.03), "Mga": (59.75, 31.06), "Sinyavino": (59.84, 31.11), "Kirishi": (59.45, 32.02),
+    "Tikhvin": (59.64, 33.51), "Volkhov": (59.92, 32.33), "Chudovo": (59.12, 31.67), "Novgorod": (58.52, 31.27),
+    "Staraya Russa": (57.99, 31.36), "Demyansk": (57.64, 32.47), "Kholm": (57.15, 31.18), "Ostashkov": (57.15, 33.11),
+    "Toropets": (56.50, 31.64), "Velikiye Luki": (56.34, 30.52), "Nevel": (56.02, 29.92), "Vitebsk": (55.19, 30.20),
+    "Polotsk": (55.49, 28.78), "Orsha": (54.51, 30.42), "Mogilev": (53.91, 30.34), "Bobruisk": (53.14, 29.22),
+    "Minsk": (53.90, 27.56), "Slutsk": (53.03, 27.56), "Borisov": (54.23, 28.50), "Molodechno": (54.31, 26.85),
+    "Gomel": (52.43, 31.00), "Rogachev": (53.09, 30.05), "Zhlobin": (52.89, 30.02), "Mozyr": (52.05, 29.25),
+    "Kalinkovichi": (52.13, 29.33), "Rechitsa": (52.36, 30.39), "Smolensk": (54.78, 32.05), "Yelnya": (54.57, 33.17),
+    "Roslavl": (53.95, 32.86), "Dorogobuzh": (54.92, 33.30), "Yartsevo": (55.06, 32.69), "Dukhovshchina": (55.20, 32.40),
+    "Vyazma": (55.21, 34.29), "Gzhatsk": (55.55, 35.00), "Mozhaisk": (55.50, 36.03), "Rzhev": (56.26, 34.33),
+    "Sychevka": (55.83, 34.28), "Bely": (55.83, 32.94), "Olenino": (56.21, 33.49), "Zubtsov": (56.17, 34.58),
+    "Kalinin": (56.86, 35.90), "Klin": (56.33, 36.73), "Volokolamsk": (56.03, 35.96), "Istra": (55.92, 36.86),
+    "Moscow": (55.75, 37.62), "Krasnaya Polyana": (56.00, 37.45), "Dmitrov": (56.34, 37.52), "Naro-Fominsk": (55.39, 36.73),
+    "Maloyaroslavets": (55.01, 36.47), "Kaluga": (54.53, 36.27), "Tula": (54.19, 37.62), "Serpukhov": (54.92, 37.41),
+    "Kashira": (54.83, 38.15), "Venev": (54.35, 38.27), "Stalinogorsk": (54.01, 38.29), "Yefremov": (53.15, 38.12),
+    "Yelets": (52.62, 38.50), "Mtsensk": (53.28, 36.57), "Orel": (52.97, 36.07), "Bryansk": (53.24, 34.37),
+    "Karachev": (53.12, 34.98), "Zhizdra": (53.75, 34.73), "Sukhinichi": (54.10, 35.35), "Kirov": (54.08, 34.31),
+    "Spas-Demensk": (54.41, 34.02), "Bolkhov": (53.44, 36.00), "Belev": (53.81, 36.13), "Kozelsk": (54.03, 35.78),
+    "Kursk": (51.73, 36.19), "Belgorod": (50.60, 36.59), "Kharkov": (49.99, 36.23), "Oboyan": (51.21, 36.28),
+    "Prokhorovka": (51.04, 36.73), "Ponyri": (52.31, 36.30), "Maloarkhangelsk": (52.40, 36.50), "Fatezh": (52.09, 35.86),
+    "Dmitriev": (52.13, 35.08), "Sevsk": (52.15, 34.49), "Rylsk": (51.57, 34.69), "Sumy": (50.91, 34.80),
+    "Lgov": (51.66, 35.27), "Sudzha": (51.19, 35.27), "Akhtyrka": (50.31, 34.90), "Bogodukhov": (50.16, 35.52),
+    "Valuyki": (50.21, 38.10), "Kupyansk": (49.71, 37.61), "Izium": (49.21, 37.26), "Balakleya": (49.46, 36.86),
+    "Chuguev": (49.84, 36.69), "Volchansk": (50.29, 36.95), "Barvenkovo": (48.91, 37.02), "Lozovaya": (48.89, 36.32),
+    "Krasnograd": (49.37, 35.45), "Poltava": (49.59, 34.55), "Kremenchug": (49.07, 33.42), "Dnepropetrovsk": (48.46, 35.04),
+    "Zaporozhye": (47.84, 35.14), "Nikopol": (47.57, 34.40), "Krivoi Rog": (47.91, 33.39), "Kirovograd": (48.51, 32.26),
+    "Uman": (48.75, 30.22), "Vinnitsa": (49.23, 28.47), "Zhitomir": (50.25, 28.66), "Korosten": (50.95, 28.64),
+    "Berdichev": (49.90, 28.58), "Kiev": (50.45, 30.52), "Chernigov": (51.49, 31.29), "Nezhin": (51.05, 31.89),
+    "Priluki": (50.59, 32.39), "Lokhvitsa": (50.36, 33.27), "Romny": (50.75, 33.47), "Konotop": (51.24, 33.20),
+    "Glukhov": (51.68, 33.91), "Bakhmach": (51.18, 32.83), "Lubny": (50.02, 33.00), "Mirgorod": (49.97, 33.61),
+    "Cherkassy": (49.44, 32.06), "Kanev": (49.75, 31.46), "Korsun": (49.42, 31.26), "Zvenigorodka": (49.08, 30.97),
+    "Shpola": (49.01, 31.39), "Belaya Tserkov": (49.80, 30.12), "Fastov": (50.08, 29.92), "Kazatin": (49.72, 28.83),
+    "Proskurov": (49.42, 26.99), "Kamenets-Podolsky": (48.68, 26.58), "Shepetovka": (50.18, 27.06), "Novograd-Volynsky": (50.59, 27.62),
+    "Sarny": (51.34, 26.60), "Chernovtsy": (48.29, 25.94), "Mogilev-Podolsky": (48.45, 27.80), "Balta": (47.94, 29.62),
+    "Pervomaisk": (48.05, 30.85), "Voznesensk": (47.57, 31.33), "Nikolaev": (46.97, 32.00), "Kherson": (46.64, 32.62),
+    "Kakhovka": (46.81, 33.48), "Melitopol": (46.84, 35.37), "Berdyansk": (46.76, 36.79), "Mariupol": (47.10, 37.55),
+    "Taganrog": (47.22, 38.90), "Rostov": (47.24, 39.71), "Novocherkassk": (47.42, 40.09), "Stalino": (48.00, 37.80),
+    "Gorlovka": (48.30, 38.05), "Voroshilovgrad": (48.57, 39.33), "Artemovsk": (48.60, 38.00), "Slavyansk": (48.85, 37.60),
+    "Kramatorsk": (48.72, 37.56), "Lisichansk": (48.90, 38.43), "Millerovo": (48.92, 40.40), "Kamensk": (48.32, 40.27),
+    "Odessa": (46.48, 30.73), "Tiraspol": (46.84, 29.63), "Kishinev": (47.01, 28.86), "Bendery": (46.83, 29.48),
+    "Izmail": (45.35, 28.84), "Akkerman": (46.19, 30.34), "Perekop": (46.16, 33.69), "Ishun": (45.92, 33.80),
+    "Simferopol": (44.95, 34.10), "Sevastopol": (44.62, 33.53), "Feodosia": (45.03, 35.38), "Kerch": (45.36, 36.47),
+    "Yalta": (44.50, 34.17), "Dzhankoi": (45.71, 34.39), "Genichesk": (46.17, 34.81), "Ak-Monai": (45.27, 35.80),
+    "Voronezh": (51.67, 39.18), "Liski": (50.98, 39.50), "Pavlovsk": (50.45, 40.07), "Boguchar": (49.94, 40.56),
+    "Kalach": (48.69, 43.53), "Stalingrad": (48.71, 44.51), "Kotelnikovo": (47.63, 43.15), "Kletskaya": (49.31, 43.07),
+    "Serafimovich": (49.58, 42.73), "Surovikino": (48.61, 42.85), "Morozovsk": (48.35, 41.83), "Tatsinskaya": (48.20, 41.28),
+    "Chir": (48.55, 42.95), "Tormosin": (48.15, 42.85), "Abganerovo": (48.13, 44.37), "Krasnoarmeisk": (48.52, 44.57),
+    "Kamyshin": (50.08, 45.40), "Astrakhan": (46.35, 48.04), "Elista": (46.31, 44.26), "Salsk": (46.47, 41.54),
+    "Proletarskaya": (46.70, 41.72), "Tikhoretsk": (45.86, 40.13), "Krasnodar": (45.04, 38.98), "Novorossiysk": (44.72, 37.77),
+    "Tuapse": (44.10, 39.08), "Anapa": (44.89, 37.32), "Temryuk": (45.27, 37.39), "Krymskaya": (44.93, 38.00),
+    "Maikop": (44.61, 40.11), "Armavir": (45.00, 41.13), "Voroshilovsk": (45.04, 41.97), "Cherkessk": (44.22, 42.06),
+    "Pyatigorsk": (44.05, 43.06), "Nalchik": (43.48, 43.61), "Mozdok": (43.74, 44.65), "Ordzhonikidze": (43.02, 44.68),
+    "Grozny": (43.32, 45.70), "Makhachkala": (42.98, 47.50), "Budyonnovsk": (44.78, 44.17), "Kizlyar": (43.85, 46.71),
+    "Elbrus": (43.35, 42.44), "Sukhumi": (43.00, 41.02), "Tbilisi": (41.72, 44.79), "Baku": (40.41, 49.87),
+    "Kalinin Bay": (56.86, 35.90), "Tver": (56.86, 35.90), "Bologoye": (57.88, 34.05), "Valdai": (57.98, 33.25),
+    "Vologda": (59.22, 39.89), "Yaroslavl": (57.63, 39.87), "Gorky": (56.33, 44.00), "Ryazan": (54.63, 39.74),
+    "Mikhailov": (54.23, 39.03), "Skopin": (53.82, 39.55), "Livny": (52.42, 37.61), "Kastornoye": (51.82, 38.12),
+    "Stary Oskol": (51.30, 37.84), "Novy Oskol": (50.76, 37.87), "Korocha": (50.81, 37.19), "Rossosh": (50.20, 39.57),
+    "Ostrogozhsk": (50.86, 39.07), "Kantemirovka": (49.71, 39.86), "Starobelsk": (49.28, 38.91), "Svatovo": (49.41, 38.16),
+    # ---------------- Balkans / Italy / Mediterranean ----------------
+    "Belgrade": (44.82, 20.46), "Zagreb": (45.81, 15.98), "Ljubljana": (46.05, 14.51), "Sarajevo": (43.86, 18.41),
+    "Skopje": (41.99, 21.43), "Nis": (43.32, 21.90), "Novi Sad": (45.27, 19.83), "Split": (43.51, 16.44),
+    "Mostar": (43.34, 17.81), "Dubrovnik": (42.65, 18.09), "Podgorica": (42.44, 19.26), "Cetinje": (42.39, 18.92),
+    "Bihac": (44.81, 15.87), "Banja Luka": (44.77, 17.19), "Uzice": (43.86, 19.85), "Kraljevo": (43.72, 20.69),
+    "Kragujevac": (44.01, 20.92), "Zajecar": (43.90, 22.28), "Vukovar": (45.35, 19.00), "Osijek": (45.55, 18.69),
+    "Subotica": (46.10, 19.67), "Sombor": (45.77, 19.11), "Valjevo": (44.27, 19.89), "Tuzla": (44.54, 18.67),
+    "Drvar": (44.37, 16.38), "Jajce": (44.34, 17.27), "Knin": (44.04, 16.20), "Zadar": (44.12, 15.23),
+    "Sibenik": (43.73, 15.90), "Rijeka": (45.33, 14.44), "Trieste": (45.65, 13.77), "Udine": (46.06, 13.24),
+    "Tirana": (41.33, 19.82), "Durres": (41.32, 19.45), "Vlore": (40.47, 19.49), "Korce": (40.62, 20.78),
+    "Gjirokaster": (40.08, 20.14), "Sarande": (39.88, 20.01), "Tepelene": (40.30, 20.02), "Kelcyre": (40.31, 20.19),
+    "Himare": (40.10, 19.75), "Pogradec": (40.90, 20.65), "Elbasan": (41.11, 20.08), "Berat": (40.70, 19.95),
+    "Shkoder": (42.07, 19.51), "Konitsa": (40.05, 20.75), "Ioannina": (39.66, 20.85), "Kalpaki": (39.89, 20.63),
+    "Florina": (40.78, 21.41), "Kastoria": (40.52, 21.27), "Thessaloniki": (40.64, 22.94), "Larissa": (39.64, 22.42),
+    "Athens": (37.98, 23.73), "Lamia": (38.90, 22.43), "Thermopylae": (38.80, 22.53), "Corinth": (37.94, 22.93),
+    "Kalamata": (37.04, 22.11), "Patras": (38.25, 21.73), "Kozani": (40.30, 21.79), "Edessa": (40.80, 22.05),
+    "Serres": (41.09, 23.55), "Drama": (41.15, 24.15), "Kavala": (40.94, 24.41), "Alexandroupoli": (40.85, 25.87),
+    "Xanthi": (41.14, 24.89), "Rupel": (41.33, 23.32), "Crete Maleme": (35.53, 23.83), "Chania": (35.51, 24.02),
+    "Rethymno": (35.37, 24.47), "Heraklion": (35.34, 25.13), "Sfakia": (35.20, 24.14), "Leros": (37.15, 26.85),
+    "Kos": (36.89, 27.29), "Rhodes": (36.43, 28.22), "Sofia": (42.70, 23.32), "Varna": (43.21, 27.91),
+    "Bucharest": (44.43, 26.10), "Constanta": (44.18, 28.63), "Galati": (45.44, 28.05), "Iasi": (47.16, 27.59),
+    "Ploiesti": (44.94, 26.03), "Brasov": (45.65, 25.61), "Cluj": (46.77, 23.60), "Oradea": (47.07, 21.92),
+    "Timisoara": (45.75, 21.23), "Arad": (46.18, 21.31), "Targu Mures": (46.54, 24.56), "Sighet": (47.93, 23.89),
+    "Satu Mare": (47.79, 22.89), "Turnu Severin": (44.63, 22.66), "Craiova": (44.32, 23.80), "Focsani": (45.70, 27.18),
+    "Botosani": (47.75, 26.67), "Suceava": (47.65, 26.26), "Roman": (46.92, 26.93), "Bacau": (46.57, 26.91),
+    "Rome": (41.90, 12.50), "Naples": (40.85, 14.27), "Salerno": (40.68, 14.77), "Taranto": (40.47, 17.24),
+    "Bari": (41.12, 16.87), "Foggia": (41.46, 15.55), "Reggio": (38.11, 15.65), "Messina": (38.19, 15.55),
+    "Palermo": (38.12, 13.36), "Catania": (37.50, 15.09), "Syracuse": (37.08, 15.29), "Gela": (37.07, 14.25),
+    "Licata": (37.10, 13.94), "Licata W": (37.08, 13.80), "Agrigento": (37.31, 13.58), "Trapani": (38.02, 12.51),
+    "Cassino": (41.49, 13.83), "Anzio": (41.45, 12.63), "Nettuno": (41.46, 12.66), "Ortona": (42.35, 14.40),
+    "Pescara": (42.46, 14.21), "Termoli": (42.00, 14.99), "Volturno": (41.02, 13.93), "Gaeta": (41.21, 13.57),
+    "Minturno": (41.26, 13.75), "Isernia": (41.59, 14.23), "Avellino": (40.91, 14.79), "Potenza": (40.64, 15.81),
+    "Grosseto": (42.76, 11.11), "Civitavecchia": (42.09, 11.80), "Perugia": (43.11, 12.39), "Ancona": (43.62, 13.52),
+    "Rimini": (44.06, 12.57), "Pesaro": (43.91, 12.91), "Florence": (43.77, 11.25), "Pisa": (43.72, 10.40),
+    "Livorno": (43.55, 10.31), "Viareggio": (43.87, 10.25), "La Spezia": (44.10, 9.82), "Genoa": (44.41, 8.93),
+    "Bologna": (44.49, 11.34), "Ravenna": (44.42, 12.20), "Faenza": (44.29, 11.88), "Imola": (44.35, 11.71),
+    "Ferrara": (44.84, 11.62), "Modena": (44.65, 10.93), "Parma": (44.80, 10.33), "Milan": (45.46, 9.19),
+    "Turin": (45.07, 7.69), "Verona": (45.44, 10.99), "Venice": (45.44, 12.33), "Padua": (45.41, 11.88),
+    "Massa": (44.04, 10.14), "Pistoia": (43.93, 10.91), "Arezzo": (43.46, 11.88), "Siena": (43.32, 11.33),
+    "Bastia": (42.70, 9.45), "Ajaccio": (41.92, 8.74), "Cagliari": (39.22, 9.12), "Valletta": (35.90, 14.51),
+    "Istanbul": (41.01, 28.98), "Ankara": (39.93, 32.85), "Antakya": (36.20, 36.16), "Aleppo": (36.20, 37.16),
+    "Damascus": (33.51, 36.29), "Beirut": (33.89, 35.50), "Tripoli LB": (34.44, 35.84), "Homs": (34.73, 36.71),
+    "Palmyra": (34.55, 38.27), "Deir ez-Zor": (35.34, 40.14), "Haifa": (32.79, 34.99), "Jerusalem": (31.78, 35.22),
+    "Amman": (31.95, 35.93), "Baghdad": (33.31, 44.37), "Basra": (30.51, 47.81), "Habbaniya": (33.38, 43.57),
+    "Mosul": (36.34, 43.13), "Kirkuk": (35.47, 44.39), "Rutbah": (33.04, 40.28), "Tehran": (35.69, 51.39),
+    "Tabriz": (38.08, 46.29), "Qazvin": (36.27, 50.00), "Kermanshah": (34.31, 47.07), "Abadan": (30.34, 48.30),
+    "Ahvaz": (31.32, 48.67), "Bandar Shah": (36.96, 54.05), "Mashhad": (36.30, 59.60),
+    # ---------------- North Africa ----------------
+    "Cairo": (30.04, 31.24), "Alexandria": (31.20, 29.92), "El Alamein": (30.83, 28.95), "Qattara": (30.00, 27.50),
+    "Mersa Matruh": (31.35, 27.24), "Sidi Barrani": (31.61, 25.93), "Sollum": (31.57, 25.15), "Halfaya": (31.55, 25.10),
+    "Bardia": (31.76, 25.08), "Fort Capuzzo": (31.62, 25.03), "Tobruk": (32.08, 23.96), "El Adem": (31.98, 23.92),
+    "Gazala": (32.15, 23.38), "Bir Hakeim": (31.60, 23.48), "Derna": (32.76, 22.64), "Mechili": (32.00, 22.47),
+    "Benghazi": (32.12, 20.07), "Beda Fomm": (31.38, 20.18), "Agedabia": (30.76, 20.23), "El Agheila": (30.27, 19.20),
+    "Mersa Brega": (30.42, 19.58), "Sirte": (31.21, 16.59), "Buerat": (31.40, 15.73), "Misurata": (32.38, 15.09),
+    "Homs LY": (32.65, 14.27), "Tripoli": (32.89, 13.19), "Zuara": (32.93, 12.08), "Ben Gardane": (33.14, 11.22),
+    "Medenine": (33.35, 10.50), "Mareth": (33.62, 10.30), "Gabes": (33.88, 10.10), "Wadi Akarit": (34.10, 10.05),
+    "Sfax": (34.74, 10.76), "Sousse": (35.83, 10.64), "Enfidaville": (36.13, 10.38), "Tunis": (36.81, 10.18),
+    "Bizerte": (37.27, 9.87), "Medjez el Bab": (36.65, 9.61), "Tebourba": (36.83, 9.84), "Mateur": (37.04, 9.67),
+    "Beja": (36.73, 9.18), "Le Kef": (36.18, 8.71), "Kasserine": (35.17, 8.83), "Sbeitla": (35.23, 9.13),
+    "Gafsa": (34.43, 8.78), "Tebessa": (35.40, 8.12), "Faid": (34.95, 9.42), "Pont du Fahs": (36.38, 10.03),
+    "Fondouk": (35.66, 9.67), "Kairouan": (35.68, 10.10), "Maknassy": (34.60, 9.60), "El Guettar": (34.34, 8.95),
+    "Bone": (36.90, 7.77), "Constantine": (36.37, 6.61), "Algiers": (36.75, 3.06), "Oran": (35.70, -0.63),
+    "Casablanca": (33.57, -7.59), "Rabat": (34.02, -6.84), "Port Lyautey": (34.26, -6.58), "Safi": (32.30, -9.24),
+    "Siwa": (29.20, 25.52), "Jarabub": (29.75, 24.52), "Gialo": (29.03, 21.55), "Kufra": (24.20, 23.30),
+}
+
+
+def _offset(p, spec):
+    import re
+    m = re.fullmatch(r"(N|S|E|W|NE|NW|SE|SW)(\d+(?:\.\d+)?)", spec)
+    if not m:
+        raise ValueError(spec)
+    d, km = m.group(1), float(m.group(2))
+    dy = (1 if "N" in d else -1 if "S" in d else 0)
+    dx = (1 if "E" in d else -1 if "W" in d else 0)
+    if dx and dy:
+        km /= math.sqrt(2)
+    lat = p[0] + dy * km / 111.3
+    lon = p[1] + dx * km / (111.3 * math.cos(math.radians(p[0])))
+    return (lat, lon)
+
+
+def P(name, *offs):
+    p = G[name]
+    for o in offs:
+        p = _offset(p, o)
+    return p
+
+
+def L(*items):
+    """Mixed list: names, (name, 'W10') tuples, or (lat, lon) tuples."""
+    out = []
+    for it in items:
+        if isinstance(it, str):
+            out.append(P(it))
+        elif isinstance(it, tuple) and isinstance(it[0], str):
+            out.append(P(it[0], *it[1:]))
+        else:
+            out.append(tuple(it))
+    return out

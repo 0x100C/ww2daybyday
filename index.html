@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WWII Day by Day</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <canvas id="map"></canvas>
+  <canvas id="overlay"></canvas>
+  <div id="loading">Loading…</div>
+
+  <footer id="bar">
+    <button id="play" title="Play / pause (Space)">▶</button>
+    <span id="ui-date">01 SEP 1939</span>
+    <input id="scrub" type="range" min="0" max="2075" value="0" step="0.0416667" aria-label="Date">
+    <select id="speed" title="Days per second">
+      <option value="0.5">0.5 d/s</option>
+      <option value="1">1 d/s</option>
+      <option value="2.6">2.6 d/s (reference)</option>
+      <option value="5">5 d/s</option>
+      <option value="10">10 d/s</option>
+      <option value="30">30 d/s</option>
+    </select>
+    <label><input id="opt-fronts" type="checkbox" checked> fronts</label>
+    <label><input id="opt-borders" type="checkbox" checked> borders</label>
+    <label><input id="opt-labels" type="checkbox" checked> pockets</label>
+    <label><input id="opt-hatch" type="checkbox" checked> sea hatch</label>
+    <button id="reset" title="Reset view">⌂</button>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

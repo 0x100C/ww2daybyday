@@ -1,0 +1,2203 @@
+{
+"epoch": "1939-09-01T00:00:00Z",
+"tEnd": 2083.0,
+"grid": {
+"w": 4096,
+"h": 3819
+},
+"units": [
+{
+"id": 1,
+"code": "GER",
+"name": "German Reich",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"axis"
+]
+]
+},
+{
+"id": 2,
+"code": "PRO",
+"name": "Protectorate of Bohemia and Moravia",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"axis"
+]
+]
+},
+{
+"id": 3,
+"code": "GG",
+"name": "General Government",
+"kind": "occupation",
+"factions": [
+[
+"1939-10-26",
+"axis"
+]
+]
+},
+{
+"id": 4,
+"code": "ITA",
+"name": "Italy",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-06-10",
+"axis"
+],
+[
+"1943-09-08",
+"allied"
+]
+]
+},
+{
+"id": 5,
+"code": "RSI",
+"name": "Italian Social Republic",
+"kind": "puppet",
+"factions": [
+[
+"1943-09-23",
+"axis"
+]
+]
+},
+{
+"id": 6,
+"code": "ALB",
+"name": "Albania",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-06-10",
+"axis"
+],
+[
+"1943-09-08",
+"axis"
+]
+]
+},
+{
+"id": 7,
+"code": "LBY",
+"name": "Libya",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-06-10",
+"axis"
+],
+[
+"1943-02-10",
+"allied_c"
+]
+]
+},
+{
+"id": 8,
+"code": "DOD",
+"name": "Italian Dodecanese",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-06-10",
+"axis"
+]
+]
+},
+{
+"id": 9,
+"code": "SVK",
+"name": "Slovakia",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"axis"
+]
+]
+},
+{
+"id": 10,
+"code": "HUN",
+"name": "Hungary",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-11-20",
+"axis"
+]
+]
+},
+{
+"id": 11,
+"code": "ROU",
+"name": "Romania",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-11-23",
+"axis"
+],
+[
+"1944-08-23",
+"allied"
+]
+]
+},
+{
+"id": 12,
+"code": "BGR",
+"name": "Bulgaria",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1941-03-01",
+"axis"
+],
+[
+"1944-09-09",
+"allied"
+]
+]
+},
+{
+"id": 13,
+"code": "FIN",
+"name": "Finland",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1941-06-25",
+"axis"
+],
+[
+"1944-09-19",
+"neutral"
+]
+]
+},
+{
+"id": 14,
+"code": "CRO",
+"name": "Independent State of Croatia",
+"kind": "puppet",
+"factions": [
+[
+"1941-04-10",
+"axis"
+]
+]
+},
+{
+"id": 15,
+"code": "VIC",
+"name": "Vichy France",
+"kind": "state",
+"factions": [
+[
+"1940-06-25",
+"vichy"
+]
+]
+},
+{
+"id": 16,
+"code": "MNE",
+"name": "Montenegro (Italian governorate)",
+"kind": "occupation",
+"factions": [
+[
+"1941-04-17",
+"axis"
+]
+]
+},
+{
+"id": 17,
+"code": "SRB",
+"name": "Serbia (German military administration)",
+"kind": "occupation",
+"factions": [
+[
+"1941-04-17",
+"axis"
+]
+]
+},
+{
+"id": 18,
+"code": "GBR",
+"name": "United Kingdom",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"allied"
+]
+]
+},
+{
+"id": 19,
+"code": "FRA",
+"name": "France",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"allied"
+]
+]
+},
+{
+"id": 20,
+"code": "POL",
+"name": "Poland",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"allied"
+]
+]
+},
+{
+"id": 21,
+"code": "WAL",
+"name": "Western Allies (field armies)",
+"kind": "force",
+"factions": [
+[
+"1939-09-01",
+"allied"
+]
+]
+},
+{
+"id": 22,
+"code": "CYP",
+"name": "Cyprus",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 23,
+"code": "MLT",
+"name": "Malta",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 24,
+"code": "GIB",
+"name": "Gibraltar",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 25,
+"code": "EGY",
+"name": "Egypt",
+"kind": "client",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 26,
+"code": "PAL",
+"name": "Palestine",
+"kind": "mandate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 27,
+"code": "TRJ",
+"name": "Transjordan",
+"kind": "mandate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 28,
+"code": "IRQ",
+"name": "Iraq",
+"kind": "client",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+],
+[
+"1941-04-01",
+"axis"
+],
+[
+"1941-05-31",
+"allied_c"
+]
+]
+},
+{
+"id": 29,
+"code": "KWT",
+"name": "Kuwait",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 30,
+"code": "GULF",
+"name": "British Gulf protectorates",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 31,
+"code": "ADEN",
+"name": "Aden",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+]
+]
+},
+{
+"id": 32,
+"code": "DZA",
+"name": "Algeria",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+],
+[
+"1940-06-25",
+"vichy"
+],
+[
+"1942-11-11",
+"allied_c"
+]
+]
+},
+{
+"id": 33,
+"code": "TUN",
+"name": "Tunisia",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+],
+[
+"1940-06-25",
+"vichy"
+],
+[
+"1943-05-13",
+"allied_c"
+]
+]
+},
+{
+"id": 34,
+"code": "MAR",
+"name": "French Morocco",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+],
+[
+"1940-06-25",
+"vichy"
+],
+[
+"1942-11-11",
+"allied_c"
+]
+]
+},
+{
+"id": 35,
+"code": "SYR",
+"name": "Syria",
+"kind": "mandate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+],
+[
+"1940-06-25",
+"vichy"
+],
+[
+"1941-07-14",
+"allied_c"
+]
+]
+},
+{
+"id": 36,
+"code": "LBN",
+"name": "Lebanon",
+"kind": "mandate",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+],
+[
+"1940-06-25",
+"vichy"
+],
+[
+"1941-07-14",
+"allied_c"
+]
+]
+},
+{
+"id": 37,
+"code": "FWA",
+"name": "French West Africa",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"allied_c"
+],
+[
+"1940-06-25",
+"vichy"
+],
+[
+"1942-11-23",
+"allied_c"
+]
+]
+},
+{
+"id": 38,
+"code": "BEL",
+"name": "Belgium",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-05-10",
+"allied"
+]
+]
+},
+{
+"id": 39,
+"code": "NLD",
+"name": "Netherlands",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-05-10",
+"allied"
+]
+]
+},
+{
+"id": 40,
+"code": "LUX",
+"name": "Luxembourg",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-05-10",
+"allied"
+]
+]
+},
+{
+"id": 41,
+"code": "NOR",
+"name": "Norway",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-04-09",
+"allied"
+]
+]
+},
+{
+"id": 42,
+"code": "DNK",
+"name": "Denmark",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-04-09",
+"allied"
+]
+]
+},
+{
+"id": 43,
+"code": "YUG",
+"name": "Yugoslavia",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1941-04-06",
+"allied"
+]
+]
+},
+{
+"id": 44,
+"code": "GRC",
+"name": "Greece",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-10-28",
+"allied"
+]
+]
+},
+{
+"id": 45,
+"code": "ISL",
+"name": "Iceland",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-05-10",
+"allied_c"
+]
+]
+},
+{
+"id": 46,
+"code": "FRO",
+"name": "Faroe Islands",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1940-04-12",
+"allied_c"
+]
+]
+},
+{
+"id": 47,
+"code": "GRL",
+"name": "Greenland",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 48,
+"code": "FFR",
+"name": "Free France",
+"kind": "force",
+"factions": [
+[
+"1940-06-18",
+"allied"
+]
+]
+},
+{
+"id": 49,
+"code": "PAR",
+"name": "Yugoslav Partisans",
+"kind": "force",
+"factions": [
+[
+"1941-07-07",
+"partisan"
+]
+]
+},
+{
+"id": 50,
+"code": "USA",
+"name": "United States",
+"kind": "force",
+"factions": [
+[
+"1941-12-08",
+"allied"
+]
+]
+},
+{
+"id": 51,
+"code": "SOV",
+"name": "Soviet Union",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"soviet"
+]
+]
+},
+{
+"id": 52,
+"code": "LTU",
+"name": "Lithuania",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 53,
+"code": "LVA",
+"name": "Latvia",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 54,
+"code": "EST",
+"name": "Estonia",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 55,
+"code": "DAN",
+"name": "Free City of Danzig",
+"kind": "free city",
+"factions": [
+[
+"1939-09-01",
+"axis"
+]
+]
+},
+{
+"id": 56,
+"code": "SWE",
+"name": "Sweden",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 57,
+"code": "CHE",
+"name": "Switzerland",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 58,
+"code": "LIE",
+"name": "Liechtenstein",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 59,
+"code": "ESP",
+"name": "Spain",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 60,
+"code": "PRT",
+"name": "Portugal",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 61,
+"code": "AND",
+"name": "Andorra",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 62,
+"code": "IRL",
+"name": "Ireland",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 63,
+"code": "TUR",
+"name": "Turkey",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 64,
+"code": "IRN",
+"name": "Iran",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+],
+[
+"1943-09-09",
+"allied_c"
+]
+]
+},
+{
+"id": 65,
+"code": "SAU",
+"name": "Saudi Arabia",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 66,
+"code": "SMA",
+"name": "Spanish Morocco",
+"kind": "protectorate",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 67,
+"code": "SSA",
+"name": "Spanish Sahara and Ifni",
+"kind": "colony",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 68,
+"code": "TNG",
+"name": "Tangier International Zone",
+"kind": "zone",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 69,
+"code": "MCO",
+"name": "Monaco",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 70,
+"code": "SMR",
+"name": "San Marino",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 71,
+"code": "VAT",
+"name": "Vatican City",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 72,
+"code": "OMN",
+"name": "Oman",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"neutral"
+]
+]
+},
+{
+"id": 73,
+"code": "SOVC",
+"name": "Soviet Central Asia",
+"kind": "state",
+"factions": [
+[
+"1939-09-01",
+"soviet"
+]
+]
+},
+{
+"id": 74,
+"code": "AUT",
+"name": "Austria",
+"kind": "occupied",
+"factions": [
+[
+"1945-04-27",
+"allied_c"
+]
+]
+},
+{
+"id": 75,
+"code": "CSR",
+"name": "Czechoslovakia",
+"kind": "state",
+"factions": [
+[
+"1945-04-04",
+"allied"
+]
+]
+}
+],
+"captions": [
+{
+"t": 35.0,
+"text": "Polish resistance comes to an end at Kock"
+},
+{
+"t": 55.0,
+"text": "Western Poland is annexed to the Reich; the rest becomes the General Government"
+},
+{
+"t": 57.0,
+"text": "Lithuanian troops enter Vilnius"
+},
+{
+"t": 62.0,
+"text": "The Soviet Union annexes eastern Poland"
+},
+{
+"t": 90.0,
+"text": "The Soviet Union attacks Finland in what would become known as the Winter War"
+},
+{
+"t": 102.0,
+"text": "Finnish victory at Tolvajarvi"
+},
+{
+"t": 129.0,
+"text": "Two Soviet divisions are destroyed at Suomussalmi and on the Raate road"
+},
+{
+"t": 165.0,
+"text": "The Red Army breaks through the Mannerheim Line at Summa"
+},
+{
+"t": 194.0,
+"text": "Finland agrees to peace, giving up significant territory"
+},
+{
+"t": 221.0,
+"text": "Germany invades Denmark and Norway"
+},
+{
+"t": 242.0,
+"text": "German forces from Oslo link up with Trondheim"
+},
+{
+"t": 252.0,
+"text": "Germany invades the Netherlands, Belgium and Luxembourg"
+},
+{
+"t": 255.0,
+"text": "German panzers cross the Meuse at Sedan"
+},
+{
+"t": 257.0,
+"text": "The Netherlands capitulate"
+},
+{
+"t": 262.0,
+"text": "German panzers reach the Channel at Abbeville"
+},
+{
+"t": 268.0,
+"text": "Operation Dynamo: the evacuation from Dunkirk begins"
+},
+{
+"t": 270.0,
+"text": "Allied troops retake Narvik"
+},
+{
+"t": 270.0,
+"text": "Belgium surrenders to the Germans"
+},
+{
+"t": 278.0,
+"text": "Fall Rot: the Germans attack across the Somme and the Aisne"
+},
+{
+"t": 283.0,
+"text": "Italy declares war on France and Britain"
+},
+{
+"t": 283.0,
+"text": "Norway capitulates"
+},
+{
+"t": 284.0,
+"text": "British raids across the Libyan frontier"
+},
+{
+"t": 287.0,
+"text": "German troops enter Paris"
+},
+{
+"t": 288.0,
+"text": "The Red Army occupies Lithuania; Latvia and Estonia follow on 17 June"
+},
+{
+"t": 295.0,
+"text": "France signs the armistice at Compiegne"
+},
+{
+"t": 301.0,
+"text": "Romania cedes Bessarabia and Northern Bukovina to the Soviet Union"
+},
+{
+"t": 306.0,
+"text": "Vichy France: Petain government takes power in the unoccupied zone"
+},
+{
+"t": 364.0,
+"text": "Second Vienna Award: Northern Transylvania is given to Hungary"
+},
+{
+"t": 372.0,
+"text": "Treaty of Craiova: Southern Dobruja returns to Bulgaria"
+},
+{
+"t": 378.0,
+"text": "The Italian Tenth Army advances into Egypt"
+},
+{
+"t": 423.0,
+"text": "Italy invades Greece from Albania"
+},
+{
+"t": 440.0,
+"text": "The Greek army counter-attacks and drives the Italians back into Albania"
+},
+{
+"t": 464.0,
+"text": "Greek troops take Argyrokastro"
+},
+{
+"t": 465.0,
+"text": "Operation Compass begins"
+},
+{
+"t": 525.0,
+"text": "The Italian Tenth Army surrenders at Beda Fomm"
+},
+{
+"t": 555.0,
+"text": "The Italian spring offensive in Albania fails"
+},
+{
+"t": 570.0,
+"text": "Rommel's Afrika Korps attacks at El Agheila"
+},
+{
+"t": 579.0,
+"text": "Rashid Ali seizes power in Iraq"
+},
+{
+"t": 583.0,
+"text": "Germany invades Yugoslavia and Greece"
+},
+{
+"t": 588.0,
+"text": "Tobruk is besieged"
+},
+{
+"t": 594.0,
+"text": "Yugoslavia surrenders"
+},
+{
+"t": 604.0,
+"text": "German troops enter Athens"
+},
+{
+"t": 609.0,
+"text": "Fighting breaks out at RAF Habbaniya"
+},
+{
+"t": 627.0,
+"text": "German paratroopers land on Crete"
+},
+{
+"t": 638.0,
+"text": "The Anglo-Iraqi War ends with an armistice"
+},
+{
+"t": 639.0,
+"text": "The last Commonwealth troops are evacuated from Crete"
+},
+{
+"t": 646.0,
+"text": "British, Commonwealth and Free French forces invade Vichy Syria and Lebanon"
+},
+{
+"t": 659.0,
+"text": "Damascus is taken"
+},
+{
+"t": 660.0,
+"text": "Germany and its allies invade the Soviet Union"
+},
+{
+"t": 663.0,
+"text": "Finland goes to war alongside Germany"
+},
+{
+"t": 666.0,
+"text": "Minsk falls; two Soviet armies are trapped west of the city"
+},
+{
+"t": 671.0,
+"text": "Stalin announces a 'scorched earth' policy"
+},
+{
+"t": 682.0,
+"text": "The Armistice of Saint Jean d'Acre ends the Syria-Lebanon campaign"
+},
+{
+"t": 684.0,
+"text": "German troops enter Smolensk"
+},
+{
+"t": 707.0,
+"text": "The Uman pocket is liquidated"
+},
+{
+"t": 724.0,
+"text": "British and Soviet forces invade Iran"
+},
+{
+"t": 727.0,
+"text": "Tallinn falls; the Baltic Fleet evacuates to Kronstadt"
+},
+{
+"t": 728.0,
+"text": "Finnish troops retake Viipuri"
+},
+{
+"t": 738.0,
+"text": "Shlisselburg falls and the siege of Leningrad begins"
+},
+{
+"t": 749.0,
+"text": "Kiev falls; the largest encirclement in history is closing"
+},
+{
+"t": 754.0,
+"text": "Tito's Partisans proclaim the Uzice Republic"
+},
+{
+"t": 760.0,
+"text": "Operation Typhoon: the drive on Moscow begins"
+},
+{
+"t": 761.0,
+"text": "Finnish troops take Petrozavodsk"
+},
+{
+"t": 776.0,
+"text": "Odessa is evacuated by sea; panic in Moscow"
+},
+{
+"t": 799.0,
+"text": "Tikhvin falls; the last rail line to Lake Ladoga is cut"
+},
+{
+"t": 809.0,
+"text": "Operation Crusader begins"
+},
+{
+"t": 812.0,
+"text": "German troops take Rostov, losing it again a week later"
+},
+{
+"t": 823.0,
+"text": "German patrols reach the outskirts of Moscow"
+},
+{
+"t": 826.0,
+"text": "The Red Army counter-attacks before Moscow"
+},
+{
+"t": 831.0,
+"text": "The siege of Tobruk is lifted"
+},
+{
+"t": 832.0,
+"text": "Germany and Italy declare war on the United States"
+},
+{
+"t": 860.0,
+"text": "The Soviet winter offensive widens along the whole front"
+},
+{
+"t": 873.0,
+"text": "Rommel counter-attacks"
+},
+{
+"t": 891.0,
+"text": "Six German divisions are encircled at Demyansk"
+},
+{
+"t": 984.0,
+"text": "The Red Army attacks at Kharkov"
+},
+{
+"t": 994.0,
+"text": "A German counter-offensive traps the Soviet spearhead south of Kharkov"
+},
+{
+"t": 998.0,
+"text": "Battle of Gazala"
+},
+{
+"t": 1024.0,
+"text": "Tobruk falls"
+},
+{
+"t": 1031.0,
+"text": "Case Blue: the German summer offensive begins"
+},
+{
+"t": 1034.0,
+"text": "First Battle of El Alamein"
+},
+{
+"t": 1037.0,
+"text": "Sevastopol falls after an eight-month siege"
+},
+{
+"t": 1057.0,
+"text": "Rostov falls; the road to the Caucasus is open"
+},
+{
+"t": 1087.0,
+"text": "German troops reach the Volga north of Stalingrad"
+},
+{
+"t": 1089.0,
+"text": "German forces reach the Terek at Mozdok"
+},
+{
+"t": 1108.0,
+"text": "The battle for the centre of Stalingrad begins"
+},
+{
+"t": 1148.0,
+"text": "Second Battle of El Alamein"
+},
+{
+"t": 1164.0,
+"text": "Operation Torch: Allied landings in Morocco and Algeria"
+},
+{
+"t": 1165.0,
+"text": "German troops land in Tunisia"
+},
+{
+"t": 1167.0,
+"text": "Case Anton: Germany and Italy occupy Vichy France"
+},
+{
+"t": 1175.0,
+"text": "Operation Uranus: the Red Army attacks north and south of Stalingrad"
+},
+{
+"t": 1179.0,
+"text": "Soviet pincers meet at Kalach; the 6th Army is surrounded"
+},
+{
+"t": 1182.0,
+"text": "The Partisans form AVNOJ at Bihac"
+},
+{
+"t": 1198.0,
+"text": "Operation Winter Storm tries to relieve Stalingrad"
+},
+{
+"t": 1202.0,
+"text": "Operation Little Saturn breaks the Italian 8th Army on the Don"
+},
+{
+"t": 1235.0,
+"text": "Operation Iskra opens a land corridor to Leningrad"
+},
+{
+"t": 1240.0,
+"text": "The Eighth Army enters Tripoli"
+},
+{
+"t": 1242.0,
+"text": "The Hungarian 2nd Army is destroyed on the Don"
+},
+{
+"t": 1250.0,
+"text": "The last German forces in Stalingrad surrender"
+},
+{
+"t": 1264.0,
+"text": "The Red Army liberates Kharkov"
+},
+{
+"t": 1267.0,
+"text": "Battle of the Kasserine Pass"
+},
+{
+"t": 1277.0,
+"text": "Germany abandons the Rzhev salient to shorten their overextended frontline"
+},
+{
+"t": 1291.0,
+"text": "Manstein's counterstroke retakes Kharkov"
+},
+{
+"t": 1296.0,
+"text": "Battle of the Mareth Line"
+},
+{
+"t": 1344.0,
+"text": "Tunis and Bizerte are taken"
+},
+{
+"t": 1350.0,
+"text": "Axis forces in Tunisia surrender"
+},
+{
+"t": 1379.0,
+"text": "Pantelleria surrenders"
+},
+{
+"t": 1403.0,
+"text": "Operation Citadel: the Germans attack the Kursk salient"
+},
+{
+"t": 1408.0,
+"text": "Operation Husky: the Allies land in Sicily"
+},
+{
+"t": 1410.0,
+"text": "Tank battle at Prokhorovka; the Red Army attacks the Orel salient"
+},
+{
+"t": 1423.0,
+"text": "Mussolini is deposed"
+},
+{
+"t": 1434.0,
+"text": "Orel and Belgorod are liberated"
+},
+{
+"t": 1446.0,
+"text": "Messina is taken; the Sicilian campaign ends"
+},
+{
+"t": 1452.0,
+"text": "Kharkov is liberated for the last time"
+},
+{
+"t": 1463.0,
+"text": "The British Eighth Army lands in Calabria"
+},
+{
+"t": 1468.0,
+"text": "Italy's armistice with the Allies is announced"
+},
+{
+"t": 1469.0,
+"text": "Allied landings at Salerno and Taranto; Germany occupies Italy"
+},
+{
+"t": 1474.0,
+"text": "British forces land on Kos, Leros and Samos"
+},
+{
+"t": 1485.0,
+"text": "Smolensk is liberated"
+},
+{
+"t": 1491.0,
+"text": "Allied troops enter Naples"
+},
+{
+"t": 1499.0,
+"text": "The last German troops leave the Kuban bridgehead"
+},
+{
+"t": 1503.0,
+"text": "Italy declares war on Germany"
+},
+{
+"t": 1522.0,
+"text": "The Red Army reaches the Perekop isthmus; Crimea is cut off"
+},
+{
+"t": 1527.0,
+"text": "The Red Army liberates Kiev"
+},
+{
+"t": 1537.0,
+"text": "Leros falls to German forces"
+},
+{
+"t": 1604.0,
+"text": "Operation Shingle: the Allies land at Anzio"
+},
+{
+"t": 1609.0,
+"text": "The siege of Leningrad is lifted after 872 days"
+},
+{
+"t": 1630.0,
+"text": "Germans break out of the Korsun pocket with heavy losses"
+},
+{
+"t": 1668.0,
+"text": "The Red Army reaches the Prut and the Romanian border"
+},
+{
+"t": 1683.0,
+"text": "Odessa is liberated"
+},
+{
+"t": 1715.0,
+"text": "The last German troops in Crimea surrender at Cape Chersonese"
+},
+{
+"t": 1721.0,
+"text": "Monte Cassino falls"
+},
+{
+"t": 1738.0,
+"text": "Rome is liberated"
+},
+{
+"t": 1740.0,
+"text": "D-Day: the Allies land in Normandy"
+},
+{
+"t": 1744.0,
+"text": "The Red Army attacks on the Karelian Isthmus"
+},
+{
+"t": 1754.0,
+"text": "Viipuri falls to the Red Army"
+},
+{
+"t": 1756.0,
+"text": "Operation Bagration: the Red Army attacks Army Group Centre"
+},
+{
+"t": 1761.0,
+"text": "Cherbourg is taken"
+},
+{
+"t": 1767.0,
+"text": "Minsk is liberated; 100,000 Germans are trapped east of the city"
+},
+{
+"t": 1773.0,
+"text": "British and Canadian troops enter Caen"
+},
+{
+"t": 1777.0,
+"text": "Vilnius is liberated"
+},
+{
+"t": 1789.0,
+"text": "Operation Cobra: the American breakout"
+},
+{
+"t": 1796.0,
+"text": "The Warsaw Uprising begins"
+},
+{
+"t": 1799.0,
+"text": "Allied troops reach Florence"
+},
+{
+"t": 1810.0,
+"text": "Operation Dragoon: Allied landings in southern France"
+},
+{
+"t": 1814.0,
+"text": "The Falaise pocket is closed"
+},
+{
+"t": 1818.0,
+"text": "Romania changes sides and declares war on Germany"
+},
+{
+"t": 1820.0,
+"text": "Paris is liberated"
+},
+{
+"t": 1820.0,
+"text": "The assault on the Gothic Line begins"
+},
+{
+"t": 1824.0,
+"text": "The Slovak National Uprising begins"
+},
+{
+"t": 1829.0,
+"text": "Brussels is liberated"
+},
+{
+"t": 1835.0,
+"text": "Bulgaria capitulates as Soviet troops cross the border"
+},
+{
+"t": 1843.0,
+"text": "Operation Market Garden"
+},
+{
+"t": 1845.0,
+"text": "Finland signs an armistice with the Soviet Union"
+},
+{
+"t": 1858.0,
+"text": "The Warsaw Uprising is crushed"
+},
+{
+"t": 1866.0,
+"text": "The Red Army reaches the Baltic near Memel; Army Group North is cut off in Courland"
+},
+{
+"t": 1870.0,
+"text": "German forces leave Athens"
+},
+{
+"t": 1876.0,
+"text": "Belgrade is liberated by Yugoslav Partisans and the Red Army"
+},
+{
+"t": 1877.0,
+"text": "Aachen is the first German city to fall"
+},
+{
+"t": 1881.0,
+"text": "The Red Army liberates Kirkenes"
+},
+{
+"t": 1895.0,
+"text": "The Scheldt estuary is cleared"
+},
+{
+"t": 1916.0,
+"text": "Albania is liberated by its partisans"
+},
+{
+"t": 1933.0,
+"text": "The Battle of the Bulge: Germany's offensive in the Ardennes"
+},
+{
+"t": 1943.0,
+"text": "Bastogne is relieved"
+},
+{
+"t": 1943.0,
+"text": "Budapest is encircled"
+},
+{
+"t": 1960.0,
+"text": "The Vistula-Oder offensive begins"
+},
+{
+"t": 1965.0,
+"text": "Warsaw is liberated"
+},
+{
+"t": 1975.0,
+"text": "Auschwitz is liberated by the Red Army"
+},
+{
+"t": 1979.0,
+"text": "Soviet troops reach the Oder, 70 km from Berlin"
+},
+{
+"t": 1992.0,
+"text": "Budapest falls after a 50-day siege"
+},
+{
+"t": 2013.0,
+"text": "The last German offensive of the war begins at Lake Balaton"
+},
+{
+"t": 2014.0,
+"text": "US troops seize the Rhine bridge at Remagen"
+},
+{
+"t": 2031.0,
+"text": "Operation Plunder: the Allies cross the Rhine at Wesel"
+},
+{
+"t": 2037.0,
+"text": "Danzig falls"
+},
+{
+"t": 2039.0,
+"text": "The Ruhr is encircled"
+},
+{
+"t": 2047.0,
+"text": "Koenigsberg surrenders"
+},
+{
+"t": 2047.0,
+"text": "The Allied spring offensive in Italy begins"
+},
+{
+"t": 2049.0,
+"text": "US troops reach the Elbe"
+},
+{
+"t": 2050.0,
+"text": "The Yugoslav army breaks through the Syrmian front"
+},
+{
+"t": 2051.0,
+"text": "The Soviets capture Vienna"
+},
+{
+"t": 2054.0,
+"text": "The battle for Berlin begins on the Oder and the Neisse"
+},
+{
+"t": 2059.0,
+"text": "Bologna is liberated"
+},
+{
+"t": 2063.0,
+"text": "American and Soviet troops meet at Torgau"
+},
+{
+"t": 2063.0,
+"text": "American and Soviet troops meet at Torgau on the Elbe"
+},
+{
+"t": 2063.0,
+"text": "Partisan uprising in northern Italy"
+},
+{
+"t": 2068.0,
+"text": "Hitler commits suicide in Berlin"
+},
+{
+"t": 2068.0,
+"text": "Hitler dies in Berlin"
+},
+{
+"t": 2070.0,
+"text": "Berlin capitulates"
+},
+{
+"t": 2070.0,
+"text": "German forces in Italy surrender"
+},
+{
+"t": 2073.0,
+"text": "German forces in the Netherlands, NW Germany and Denmark surrender"
+},
+{
+"t": 2076.0,
+"text": "Germany surrenders unconditionally"
+},
+{
+"t": 2076.0,
+"text": "VE Day: Germany surrenders unconditionally"
+},
+{
+"t": 2077.0,
+"text": "The Red Army enters Prague"
+}
+],
+"labels": [
+{
+"t0": 268.0,
+"t1": 277.0,
+"lat": 51.03,
+"lon": 2.45,
+"text": "338,000 evacuated",
+"side": "allied",
+"src": "Ellis 1953"
+},
+{
+"t0": 270.0,
+"t1": 273.0,
+"lat": 50.63,
+"lon": 3.05,
+"text": "c. 35,000 encircled",
+"side": "allied",
+"src": "Ellis 1953"
+},
+{
+"t0": 290.75,
+"t1": 295.5,
+"lat": 48.4,
+"lon": 6.7,
+"text": "c. 500,000 encircled",
+"side": "allied",
+"src": "Frieser 2005"
+},
+{
+"t0": 283.0,
+"t1": 285.5,
+"lat": 49.85,
+"lon": 0.7,
+"text": "c. 46,000 encircled",
+"side": "allied",
+"src": "Ellis 1953"
+},
+{
+"t0": 1889.5,
+"t1": 2077.5,
+"lat": 35.45,
+"lon": 23.9,
+"text": "Fortress Crete",
+"side": "axis",
+"src": ""
+},
+{
+"t0": 1345.5,
+"t1": 1350.5,
+"lat": 36.45,
+"lon": 10.55,
+"text": "Axis forces, Cape Bon",
+"side": "axis",
+"src": ""
+},
+{
+"t0": 665.0,
+"t1": 671.0,
+"lat": 53.4,
+"lon": 24.8,
+"text": "c. 324,000 captured",
+"side": "allied",
+"src": "Glantz, Barbarossa 2001"
+},
+{
+"t0": 685.0,
+"t1": 704.0,
+"lat": 54.85,
+"lon": 31.9,
+"text": "c. 300,000 captured",
+"side": "allied",
+"src": "Glantz 2010"
+},
+{
+"t0": 700.0,
+"t1": 707.0,
+"lat": 48.65,
+"lon": 30.3,
+"text": "c. 103,000 captured",
+"side": "allied",
+"src": "Glantz 2001"
+},
+{
+"t0": 744.0,
+"t1": 756.0,
+"lat": 50.4,
+"lon": 32.3,
+"text": "c. 665,000 captured",
+"side": "allied",
+"src": "Stahel 2012"
+},
+{
+"t0": 767.0,
+"t1": 780.0,
+"lat": 55.15,
+"lon": 34.0,
+"text": "Vyazma-Bryansk: c. 670,000 captured",
+"side": "allied",
+"src": "Glantz 2001"
+},
+{
+"t0": 767.0,
+"t1": 770.0,
+"lat": 47.1,
+"lon": 36.3,
+"text": "c. 100,000 captured",
+"side": "allied",
+"src": "Glantz 2001"
+},
+{
+"t0": 712.0,
+"t1": 776.0,
+"lat": 46.48,
+"lon": 30.73,
+"text": "Odessa besieged",
+"side": "allied",
+"src": ""
+},
+{
+"t0": 738.0,
+"t1": 853.0,
+"lat": 59.94,
+"lon": 30.31,
+"text": "Leningrad besieged",
+"side": "allied",
+"src": ""
+},
+{
+"t0": 873.0,
+"t1": 977.0,
+"lat": 57.15,
+"lon": 31.18,
+"text": "Kholm: c. 5,500 encircled",
+"side": "axis",
+"src": "Ziemke & Bauer 1987"
+},
+{
+"t0": 891.0,
+"t1": 963.0,
+"lat": 57.65,
+"lon": 32.5,
+"text": "Demyansk: c. 95,000 encircled",
+"side": "axis",
+"src": "Ziemke & Bauer 1987"
+},
+{
+"t0": 994.0,
+"t1": 1000.0,
+"lat": 49.0,
+"lon": 36.7,
+"text": "c. 240,000 captured",
+"side": "allied",
+"src": "Glantz 1998"
+},
+{
+"t0": 1179.0,
+"t1": 1250.0,
+"lat": 48.8,
+"lon": 44.1,
+"text": "c. 250,000 encircled",
+"side": "axis",
+"src": "Glantz 2009"
+},
+{
+"t0": 1610.0,
+"t1": 1630.0,
+"lat": 49.35,
+"lon": 31.3,
+"text": "Korsun: c. 60,000 encircled",
+"side": "axis",
+"src": "Zetterling & Frankson 2008"
+},
+{
+"t0": 1667.0,
+"t1": 1680.0,
+"lat": 48.85,
+"lon": 26.5,
+"text": "c. 200,000 encircled",
+"side": "axis",
+"src": "Ziemke 1968"
+},
+{
+"t0": 1760.0,
+"t1": 1763.0,
+"lat": 53.15,
+"lon": 29.25,
+"text": "Bobruisk: c. 40,000 encircled",
+"side": "axis",
+"src": "Glantz 2001"
+},
+{
+"t0": 1767.0,
+"t1": 1775.0,
+"lat": 53.8,
+"lon": 28.55,
+"text": "c. 100,000 encircled",
+"side": "axis",
+"src": "Glantz 2001"
+},
+{
+"t0": 1819.0,
+"t1": 1824.0,
+"lat": 46.8,
+"lon": 28.45,
+"text": "c. 180,000 encircled",
+"side": "axis",
+"src": "Glantz 2007"
+},
+{
+"t0": 1866.0,
+"t1": 2077.0,
+"lat": 56.8,
+"lon": 22.2,
+"text": "Courland: c. 250,000 cut off",
+"side": "axis",
+"src": "Ziemke 1968"
+},
+{
+"t0": 1943.0,
+"t1": 1992.0,
+"lat": 47.5,
+"lon": 19.05,
+"text": "Budapest: c. 180,000 encircled",
+"side": "axis",
+"src": "Ungvary 2005"
+},
+{
+"t0": 1973.0,
+"t1": 2002.0,
+"lat": 52.41,
+"lon": 16.93,
+"text": "Posen: c. 60,000 encircled",
+"side": "axis",
+"src": "Duffy 1991"
+},
+{
+"t0": 1994.0,
+"t1": 2074.0,
+"lat": 51.11,
+"lon": 17.03,
+"text": "Breslau besieged",
+"side": "axis",
+"src": "Duffy 1991"
+},
+{
+"t0": 2020.0,
+"t1": 2036.0,
+"lat": 54.55,
+"lon": 20.1,
+"text": "Heiligenbeil pocket",
+"side": "axis",
+"src": "Duffy 1991"
+},
+{
+"t0": 2063.0,
+"t1": 2070.0,
+"lat": 52.5,
+"lon": 13.4,
+"text": "Berlin encircled",
+"side": "axis",
+"src": "Beevor 2002"
+},
+{
+"t0": 2063.0,
+"t1": 2069.0,
+"lat": 52.1,
+"lon": 13.8,
+"text": "Halbe: c. 200,000 encircled",
+"side": "axis",
+"src": "Beevor 2002"
+},
+{
+"t0": 1604.0,
+"t1": 1728.0,
+"lat": 41.5,
+"lon": 12.7,
+"text": "Anzio beachhead",
+"side": "allied",
+"src": "Fisher 1977"
+},
+{
+"t0": 1827.0,
+"t1": 1838.5,
+"lat": 49.52,
+"lon": 0.15,
+"text": "",
+"side": "axis",
+"src": "Ellis 1968; Stacey 1960"
+},
+{
+"t0": 1802.0,
+"t1": 1845.5,
+"lat": 48.4,
+"lon": -4.45,
+"text": "",
+"side": "axis",
+"src": "Ellis 1968; Stacey 1960"
+},
+{
+"t0": 1831.0,
+"t1": 2077.5,
+"lat": 51.0,
+"lon": 2.38,
+"text": "",
+"side": "axis",
+"src": "Ellis 1968; Stacey 1960"
+},
+{
+"t0": 1805.0,
+"t1": 2078.5,
+"lat": 47.75,
+"lon": -3.35,
+"text": "",
+"side": "axis",
+"src": "Ellis 1968; Stacey 1960"
+},
+{
+"t0": 1807.0,
+"t1": 2079.5,
+"lat": 47.28,
+"lon": -2.2,
+"text": "",
+"side": "axis",
+"src": "Ellis 1968; Stacey 1960"
+},
+{
+"t0": 1838.0,
+"t1": 2077.5,
+"lat": 46.15,
+"lon": -1.2,
+"text": "",
+"side": "axis",
+"src": "Ellis 1968; Stacey 1960"
+},
+{
+"t0": 1838.0,
+"t1": 2056.5,
+"lat": 45.62,
+"lon": -1.05,
+"text": "",
+"side": "axis",
+"src": "Ellis 1968; Stacey 1960"
+},
+{
+"t0": 1812.0,
+"t1": 1816.75,
+"lat": 48.82,
+"lon": -0.1,
+"text": "Falaise pocket",
+"side": "axis",
+"src": "Blumenson 1961"
+},
+{
+"t0": 1938.0,
+"t1": 1943.5,
+"lat": 50.0,
+"lon": 5.72,
+"text": "Bastogne",
+"side": "allied",
+"src": "Cole 1965"
+},
+{
+"t0": 2039.0,
+"t1": 2056.75,
+"lat": 51.35,
+"lon": 7.6,
+"text": "Ruhr pocket: 317,000 captured",
+"side": "axis",
+"src": "MacDonald 1973"
+}
+]
+}
