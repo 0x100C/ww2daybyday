@@ -90,7 +90,7 @@ node build/tests/determinism.mjs    # play vs jump vs reload give identical stat
 ## Known gaps and differences (not a 1:1 match)
 
 **Visual**
-- **Numeric labels.** The reference shows troop-strength numbers on some fronts and pockets. Here, only pockets with a sourced figure are labelled; no numbers were invented.
+- **Troop numbers.** As in the reference, each front shows the strength of both sides along the line. The figures come from published totals at dated anchors, listed with sources in `data/strengths.json`: Glantz & House for the Eastern Front, Frieser for France 1940, Playfair, Howe, Fisher and Ellis for the other fronts. They are interpolated linearly day by day, so the exact-looking daily number is an interpolation, not a documented daily count. You can turn them off with the **troops** checkbox.
 - **Grid resolution.** The grid cell is about 1.7 km, so at strong zoom front lines show stair-steps. The reference's vector-like edges are smoother at close zoom. At the reference framing the difference is small.
 - **Typography.** Captions and the date use system sans-serif fonts. The reference's typeface could not be identified exactly.
 - **Colours.** Colours were sampled from compressed video frames. Sampled regions differ from the reference by under about 10 RGB units (Soviet, German, French, British, sea, neutral). The relief in neutral areas is somewhat more contrasty than in the reference.

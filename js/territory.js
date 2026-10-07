@@ -163,6 +163,9 @@ export class WindowBuffers {
       S[o] = c; S[o + 1] = c; S[o + 2] = y; S[o + 3] = y;
       M[o] = 0; M[o + 1] = 255; M[o + 2] = 0; M[o + 3] = 0;
     };
+    // Incremental reset is only valid for the next consecutive window; after a
+    // jump (scrub, seek, backwards) any cell may have changed, so rebuild all.
+    if (this.w0 === null || Math.abs(w0 - this.w0 - 1) > 1e-6) this.full = true;
     if (this.full) {
       for (let i = 0; i < T.N; i++) setDefault(i);
       x0 = 0; y0 = 0; x1 = W - 1; y1 = H - 1;

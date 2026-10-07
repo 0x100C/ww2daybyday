@@ -30,5 +30,17 @@ for (const t of times.slice(0, 10)) {
   const hh = createHash('sha1').update(T2.control).update(T2.country).digest('hex');
   if (hh !== forward.get(t)) { fail++; console.log('MISMATCH reload', t); }
 }
+// 4. GPU window buffers: stepping day by day, jumping forward and jumping back
+//    must all produce the same textures as a fresh build of that day.
+const { WindowBuffers } = await import('../../js/territory.js');
+const T3 = await loadTerritory('data/territory.bin');
+const hb = (wb) => createHash('sha1').update(wb.state).update(wb.time).digest('hex');
+const ref = (d) => { const w = new WindowBuffers(T3); w.build(d, d + 1); return hb(w); };
+const live = new WindowBuffers(T);
+const days = [100, 101, 102, 650, 651, 300, 1500, 1501, 1502, 40];
+for (const d of days) {
+  live.build(d, d + 1);
+  if (hb(live) !== ref(d)) { fail++; console.log('MISMATCH window', d); }
+}
 console.log(`${times.length} sample times, tEnd ${T.tEnd.toFixed(2)} days: ${fail ? fail + ' mismatches' : 'all identical'}`);
 process.exit(fail ? 1 : 0);

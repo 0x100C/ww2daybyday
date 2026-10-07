@@ -56,6 +56,17 @@ async function main() {
     loadTerritory('data/territory.bin'),
   ]);
   app.meta = meta;
+  // front strengths: dated anchors -> per-day interpolated label tracks
+  const parseT = (s) => {
+    const [d, h] = s.split(' ');
+    return (Date.parse(d + 'T00:00:00Z') - EPOCH) / 864e5 + (h ? +h / 24 : 0);
+  };
+  const strengths = await fetch('data/strengths.json').then((x) => (x.ok ? x.json() : { fronts: [] })).catch(() => ({ fronts: [] }));
+  const tracks = [];
+  for (const f of strengths.fronts) for (const s of f.sides) {
+    tracks.push({ side: s.label_side || s.side, a: s.a.map(([d, n, lat, lon, ang]) => ({ t: parseT(d), n, lat, lon, ang })) });
+  }
+  app.tracks = tracks;
   app.terr = terr;
   app.tEnd = meta.tEnd;
   r.initGrid(terr.W, terr.H);
@@ -108,6 +119,39 @@ async function main() {
     $('ui-date').textContent = `${d.day} ${d.mon} ${d.year}`;
   }
 
+  // troop strength along each front, rotated with the front (reference style: 1.790.944)
+  function drawStrengths(c, rr, t) {
+    const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    for (const tr of app.tracks) {
+      const a = tr.a;
+      if (t < a[0].t || t > a[a.length - 1].t) continue;
+      let i = 0;
+      while (i < a.length - 2 && a[i + 1].t < t) i++;
+      const p = a[i], q = a[i + 1] || p;
+      const f = q.t > p.t ? Math.min(1, Math.max(0, (t - p.t) / (q.t - p.t))) : 0;
+      const lerp = (u, v) => u + (v - u) * f;
+      const n = lerp(p.n, q.n);
+      if (n < 500) continue;
+      const fade = Math.min(1, (t - a[0].t) * 2, (a[a.length - 1].t - t) * 2);
+      const [sx, sy] = rr.toScreen(mercX(lerp(p.lon, q.lon)), millerY(lerp(p.lat, q.lat)));
+      const x = sx / rr.dpr, y = sy / rr.dpr;
+      c.save();
+      c.globalAlpha = fade;
+      c.translate(x, y);
+      c.rotate(lerp(p.ang, q.ang) * Math.PI / 180);
+      c.font = '600 26px "Segoe UI", "Open Sans", Calibri, Arial, sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineJoin = 'round';
+      c.lineWidth = 4;
+      const allied = tr.side === 'allied';
+      c.strokeStyle = allied ? 'rgba(40,70,130,0.7)' : 'rgba(25,27,30,0.6)';
+      c.strokeText(fmt(n), 0, 0);
+      c.fillStyle = allied ? '#e6eeff' : '#ffffff';
+      c.fillText(fmt(n), 0, 0);
+      c.restore();
+    }
+  }
+
   function drawOverlay(c, rr, t, now) {
     const W = overlay.clientWidth, H = overlay.clientHeight, dpr = rr.dpr;
     if (overlay.width !== Math.round(W * dpr) || overlay.height !== Math.round(H * dpr)) {
@@ -136,6 +180,7 @@ async function main() {
       c.fillText(cap.text, 14, H - 92);
       c.globalAlpha = 1;
     }
+    if ($('opt-numbers').checked) drawStrengths(c, rr, t);
     if (!$('opt-labels').checked) return;
     // encirclement markers
     for (const L of meta.labels) {
