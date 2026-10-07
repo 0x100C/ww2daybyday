@@ -46,7 +46,14 @@ def build(tl):
     iq = tl.layer("iraq-1941", "GBR", within=["IRQ"], order=46)
     for d, r in IRAQ.items():
         iq.key(d, *r)
-    iq.end("1941-05-31 12")
+    # after the armistice Britain occupies the key points, not the whole country:
+    # Basra and the Shatt al-Arab, Habbaniya-Baghdad, and from June the Kirkuk
+    # and Mosul oilfields; the rest of Iraq stays under its own government
+    occ = [blob([(31.2, 46.9), (31.3, 48.3), (29.9, 48.6), (30.2, 47.0)], seed=518),
+           blob([(33.65, 43.20), (33.60, 44.70), (33.05, 44.70), (33.10, 43.30)], seed=519)]
+    iq.key("1941-06-02 00", *occ, span=1.0)
+    iq.key("1941-06-20 00", *occ, blob([(35.65, 44.10), (35.60, 44.60), (35.25, 44.55), (35.30, 44.05)], seed=520),
+           blob([(36.50, 42.90), (36.45, 43.40), (36.15, 43.35), (36.20, 42.85)], seed=521), span=10)
 
     sy = tl.layer("syria-1941", "GBR", within=["SYR", "LBN"], order=47)
     for d, r in SYRIA.items():
@@ -59,13 +66,29 @@ def build(tl):
     so.key("1941-08-28 00", blob([(39.5, 44.2), (39.6, 48.2), (38.0, 49.2), (37.2, 49.8), (36.6, 50.6),
                                   (36.9, 47.0), (37.9, 45.0)], seed=513),
            blob([(37.8, 53.3), (38.1, 57.5), (37.0, 59.5), (36.3, 59.0), (36.6, 54.5)], seed=514))
-    so.key("1941-09-02 00", SOV_IRAN)
+    # occupied belts along the invasion roads (Tabriz, Ardabil-Rasht, Gorgan-Mashhad), Qazvin 30 Aug,
+    # Tehran entered 17 Sep; the full zone of the Tripartite Treaty only from 29 Jan 1942
+    so.key("1941-09-01 00", blob([(39.6, 44.2), (39.6, 48.3), (38.4, 49.0), (37.4, 49.9), (36.9, 50.6), (36.3, 50.2),
+                                  (36.7, 48.6), (37.4, 46.8), (37.8, 45.1)], seed=522),
+           blob([(37.9, 53.5), (38.1, 57.5), (37.3, 59.8), (36.1, 60.0), (35.9, 59.0), (36.6, 56.0), (36.8, 54.2)], seed=523))
+    so.key("1941-09-17 12", blob([(39.6, 44.2), (39.6, 48.3), (38.4, 49.0), (37.4, 49.9), (36.9, 51.5), (36.4, 52.4),
+                                  (35.9, 51.6), (35.75, 50.2), (36.5, 48.6), (37.2, 46.8), (37.8, 45.1)], seed=524),
+           blob([(37.9, 53.5), (38.1, 57.5), (37.3, 59.8), (36.1, 60.0), (35.9, 59.0), (36.6, 56.0), (36.8, 54.2)], seed=523),
+           span=4)
+    so.key("1942-01-29 00", SOV_IRAN, span=30)
     gb = tl.layer("iran-british", "GBR", within=["IRN"], order=49)
     gb.key("1941-08-25 06", blob([(30.9, 48.0), (31.3, 49.0), (30.2, 49.6), (29.9, 48.4)], seed=515),
            circle(34.45, 45.9, 18, 10))
     gb.key("1941-08-28 00", blob([(32.5, 47.4), (32.3, 49.6), (30.0, 50.4), (29.9, 48.3), (31.5, 47.6)], seed=516),
            blob([(34.6, 45.5), (34.4, 47.2), (33.8, 47.0), (34.0, 45.7)], seed=517))
-    gb.key("1941-09-02 00", GBR_IRAN)
+    # Khuzestan oil (Abadan, Ahvaz) and the Paitak pass - Kermanshah (29 Aug) - Hamadan road;
+    # Tehran 17 Sep; treaty zone from 29 Jan 1942
+    gb.key("1941-09-01 00", blob([(32.6, 47.4), (32.4, 49.7), (30.0, 50.4), (29.9, 48.3), (31.5, 47.6)], seed=525),
+           blob([(34.7, 45.4), (34.9, 48.6), (34.35, 48.7), (34.0, 46.6), (34.2, 45.5)], seed=526))
+    gb.key("1941-09-17 12", blob([(32.6, 47.4), (32.4, 49.7), (30.0, 50.4), (29.9, 48.3), (31.5, 47.6)], seed=525),
+           blob([(34.7, 45.4), (34.95, 48.7), (34.6, 49.8), (35.0, 50.8), (35.55, 51.3), (35.35, 51.6), (34.6, 50.7),
+                 (34.1, 49.6), (34.0, 46.6), (34.2, 45.5)], seed=527), span=4)
+    gb.key("1942-01-29 00", GBR_IRAN, span=30)
 
     dd = tl.layer("dodecanese-1943", "GBR", within=["DOD", "GRC"], order=50)
     kos, leros, samos = circle(36.82, 27.15, 26, 14), circle(37.15, 26.85, 9, 12), circle(37.73, 26.85, 24, 14)

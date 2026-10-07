@@ -93,8 +93,10 @@ def mobility():
     rng = np.random.default_rng(1939)
     noise = ndimage.gaussian_filter(rng.standard_normal(ink.shape).astype(np.float32), 14)
     noise /= np.percentile(np.abs(noise), 99) + 1e-6
-    cost = (0.25 + 0.95 * (1.0 - dens) ** 1.5) * (1.0 + 0.6 * np.clip(noise, -1, 1))
-    _MOBILITY = np.clip(cost, 0.12, 2.0).astype(np.float32)
+    # gentle: main routes lead by ~1.5x, so a sector advances as one connected
+    # movement instead of scattered cells being taken one after another
+    cost = (0.70 + 0.40 * (1.0 - dens)) * (1.0 + 0.10 * np.clip(noise, -1, 1))
+    _MOBILITY = np.clip(cost, 0.5, 1.3).astype(np.float32)
     np.save(cache, _MOBILITY)
     return _MOBILITY
 

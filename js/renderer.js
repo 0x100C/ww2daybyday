@@ -127,12 +127,13 @@ void main(){
   float wmask = clamp((water - 0.5) * 1.6 + 0.5, 0.0, 1.0);
   vec3 wcol = vec3(218.0, 227.0, 241.0) / 255.0;
   if (uHatch > 0.5) {
-    // dashed diagonal hatch, as in the reference: "/" lines, short dashes along them
-    float h = fract((px.x + px.y) / (7.0 * uPx));
-    float line = smoothstep(0.0, 0.14, h) * smoothstep(0.30, 0.14, h);
-    float dash = smoothstep(0.0, 0.08, fract((px.x - px.y) / (16.0 * uPx))) *
-                 smoothstep(0.62, 0.54, fract((px.x - px.y) / (16.0 * uPx)));
-    wcol = mix(wcol, vec3(176.0, 191.0, 218.0) / 255.0, line * dash * 0.85);
+    // dashed diagonal hatch, matched to the reference: "\\" lines ~6 px apart,
+    // dashes ~13 px long with ~4 px gaps, muted blue-grey
+    float u = (px.x - px.y) / (6.0 * uPx);
+    float line = smoothstep(0.0, 0.12, fract(u)) * smoothstep(0.42, 0.28, fract(u));
+    float v = fract((px.x + px.y) / (24.0 * uPx));
+    float dash = smoothstep(0.0, 0.04, v) * smoothstep(0.80, 0.74, v);
+    wcol = mix(wcol, vec3(182.0, 199.0, 225.0) / 255.0, line * dash * 0.8);
   }
   vec3 c = mix(land, wcol, wmask);
   // ink: built-up areas, roads, railways and the coastline

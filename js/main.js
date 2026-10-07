@@ -68,6 +68,8 @@ async function main() {
       side: s.label_side || s.side,
       a: s.a.map(([d, n, lat, lon, ang]) => ({ t: parseT(d), n, lat, lon, ang })),
       n: s.n ? s.n.map(([d, n]) => ({ t: parseT(d), n })) : null,
+      track: f.track ? meta.fronts && meta.fronts[f.track] : null,
+      onW: f.track ? (s.label_side || s.side) === f.wside : false,
     });
   }
   app.tracks = tracks;
@@ -132,6 +134,33 @@ async function main() {
     $('ui-date').textContent = `${d.day} ${d.mon} ${d.year}`;
   }
 
+  // Label anchor that follows a front: the front's key lines (48 points each)
+  // are interpolated point by point in time; the label sits at the middle of
+  // the line, offset to its own side, and is rotated along the front.
+  function trackPlace(F, onW, t, rr) {
+    const K = F.keys;
+    if (!K.length || t < K[0][0] || (F.end != null && t > F.end)) return null;
+    let i = 0;
+    while (i < K.length - 2 && K[i + 1][0] <= t) i++;
+    const A = K[i], B = K[i + 1] && K[i + 1][0] > A[0] ? K[i + 1] : A;
+    const f = B === A ? 0 : Math.min(1, Math.max(0, (t - A[0]) / (B[0] - A[0])));
+    const pt = (j) => {
+      const la = A[2][j][0] + (B[2][j][0] - A[2][j][0]) * f, lo = A[2][j][1] + (B[2][j][1] - A[2][j][1]) * f;
+      const [sx, sy] = rr.toScreen(mercX(lo), millerY(la));
+      return [sx / rr.dpr, sy / rr.dpr];
+    };
+    const m = pt(24), a = pt(20), b = pt(28);
+    let tx = b[0] - a[0], ty = b[1] - a[1];
+    const len = Math.hypot(tx, ty) || 1; tx /= len; ty /= len;
+    const ws = (f < 0.5 ? A[1] : B[1]);
+    const side = (onW ? ws : -ws);
+    const off = 46;                                    // px from the line
+    const x = m[0] + side * -ty * off, y = m[1] + side * tx * off;
+    let ang = Math.atan2(ty, tx);
+    if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI;
+    return [x, y, ang];
+  }
+
   // troop strength along each front, rotated with the front (reference style: 1.790.944)
   function drawStrengths(c, rr, t) {
     const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -154,12 +183,18 @@ async function main() {
       }
       if (n < 500) continue;
       const fade = Math.min(1, (t - a[0].t) * 2, (a[a.length - 1].t - t) * 2);
-      const [sx, sy] = rr.toScreen(mercX(lerp(p.lon, q.lon)), millerY(lerp(p.lat, q.lat)));
-      const x = sx / rr.dpr, y = sy / rr.dpr;
+      let x, y, ang;
+      const tp = tr.track ? trackPlace(tr.track, tr.onW, t, rr) : null;
+      if (tp) {
+        [x, y, ang] = tp;
+      } else {
+        const [sx, sy] = rr.toScreen(mercX(lerp(p.lon, q.lon)), millerY(lerp(p.lat, q.lat)));
+        x = sx / rr.dpr; y = sy / rr.dpr; ang = lerp(p.ang, q.ang) * Math.PI / 180;
+      }
       c.save();
       c.globalAlpha = fade;
       c.translate(x, y);
-      c.rotate(lerp(p.ang, q.ang) * Math.PI / 180);
+      c.rotate(ang);
       // reference style: bold white figures with a soft glow in the side's colour
       c.font = '700 27px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle';

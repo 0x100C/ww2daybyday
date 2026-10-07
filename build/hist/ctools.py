@@ -47,10 +47,18 @@ class Front:
         self.cw, self.ce = list(closure_w), list(closure_e)
         self.amp, self.seg, self.seed = jitter_amp, jitter_seg, seed
         self.e_active = True
+        # raw key lines, exported for front-following troop labels
+        self.name, self.w, self.e = name, w, e
+        self.lines = []
+        if not hasattr(tl, "fronts"):
+            tl.fronts = []
+        tl.fronts.append(self)
 
     def key(self, date, line, w_pockets=(), e_pockets=(), raw=False, src="", span=None, cw=None, ce=None):
         ln = list(line) if raw or self.amp <= 0 else J(line, amp=self.amp, seg=self.seg, seed=self.seed)
         cw = self.cw if cw is None else list(cw)
+        if not raw:
+            self.lines.append((date, list(line), list(cw)))
         ce = self.ce if ce is None else list(ce)
         wr = [ln + cw] + [list(p) for p in e_pockets]
         self.Lw.key(date, wr[0], src=src, span=span)

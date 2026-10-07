@@ -27,6 +27,39 @@ OUT = os.path.join(HERE, "..", "data")
 
 
 def main():
+    def export_fronts(tl):
+        """Front key lines for troop labels that follow the fronts: each key is
+        resampled to 48 points by arc length so the runtime can interpolate
+        between keys point by point; 'ws' is +1 when side W lies to the right
+        of the line's direction at its midpoint, -1 when to the left."""
+        import numpy as np
+        from shapely.geometry import Point, Polygon
+        out = {}
+        for F in getattr(tl, "fronts", []):
+            keys = []
+            for date, line, cw in sorted(F.lines, key=lambda k: T(k[0])):
+                a = np.array([(lo * np.cos(np.radians(la)), la) for la, lo in line])
+                seg = np.r_[0, np.cumsum(np.hypot(*np.diff(a, axis=0).T))]
+                if seg[-1] <= 0:
+                    continue
+                s = np.linspace(0, seg[-1], 48)
+                lat = np.interp(s, seg, [p[0] for p in line])
+                lon = np.interp(s, seg, [p[1] for p in line])
+                i = 24
+                dx = (lon[i + 1] - lon[i - 1]) * np.cos(np.radians(lat[i])); dy = lat[i + 1] - lat[i - 1]
+                n = np.hypot(dx, dy) or 1.0
+                rx, ry = dy / n, -dx / n                       # right-hand normal (east-ish, north)
+                probe = Point(lon[i] + 0.3 * rx / np.cos(np.radians(lat[i])), lat[i] + 0.3 * ry)
+                try:
+                    ring = Polygon([(lo, la) for la, lo in list(line) + list(cw)]).buffer(0)
+                    ws = 1 if ring.contains(probe) else -1
+                except Exception:
+                    ws = 1
+                keys.append([round(T(date), 4), ws, [[round(float(x), 3), round(float(y), 3)] for x, y in zip(lat, lon)]])
+            end = [k[0] for k in F.Lw.sorted_keys() if k[1] is None]
+            out[F.name] = {"w": F.w, "e": F.e, "end": end[-1] if end else None, "keys": keys}
+        return out
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--snap", default="")
     ap.add_argument("--snapdir", default=os.path.join(HERE, "cache", "snaps"))
@@ -50,6 +83,7 @@ def main():
                    "factions": u["factions"]} for u in UNITS],
         "captions": [{"t": t, "text": s} for t, s in sorted(tl.notes)],
         "labels": tl.labels,
+        "fronts": export_fronts(tl),
     }
     with open(os.path.join(OUT, "meta.json"), "w") as f:
         json.dump(meta, f, ensure_ascii=False, indent=0)
