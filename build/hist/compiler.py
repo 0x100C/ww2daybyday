@@ -100,7 +100,7 @@ def mobility():
 
 
 T_PEACE = T("1945-05-08 12")   # end of the war in Europe
-ROUGH_BAND = 26  # cells (~45 km) either side of a drawn line
+ROUGH_BAND = 0   # cells; 0 = off (fronts follow the documented lines) either side of a drawn line
 
 
 def roughen(m):
@@ -109,7 +109,7 @@ def roughen(m):
     cells just inside are given up (bypassed ground). Deterministic: depends
     only on the mask and the static mobility field. Small rings (pockets,
     beachheads) are not eroded so they cannot vanish."""
-    if not m.any() or m.all():
+    if ROUGH_BAND <= 0 or not m.any() or m.all():
         return m
     edge = m ^ ndimage.binary_erosion(m)
     if not edge.any():

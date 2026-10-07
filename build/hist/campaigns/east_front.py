@@ -9,8 +9,10 @@ from ctools import Front
 
 _F = {}
 
-AXIS_LANDS = ["GER", "GG", "PRO", "SVK", "HUN", "ROU", "BGR", "LTU", "LVA", "EST", "YUG", "SRB",
-              "CRO", "DAN", "POL", "AUT", "CSR"]
+# Yugoslavia and Croatia are left out: the Red Army only crossed eastern Serbia
+# (Belgrade, Oct 1944); everything else there is drawn by the Partisan layer.
+AXIS_LANDS = ["GER", "GG", "PRO", "SVK", "HUN", "ROU", "BGR", "LTU", "LVA", "EST", "SRB",
+              "DAN", "POL", "AUT", "CSR"]
 
 # closures (see ctools.Front): W from the south end around the west to the north end
 CL_W = [(44.5, 30.5), (42.5, 29.0), (41.0, 22.0), (44.0, 12.0), (55.0, 10.0), (57.5, 16.0), (59.5, 22.0),

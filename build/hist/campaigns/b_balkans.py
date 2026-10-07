@@ -205,8 +205,12 @@ def build(tl):
                                    (44.10, 16.00), (44.70, 15.40)], seed=55)], span=20)
     pa.key("1944-06-15 00", *PART_JUN44, span=20)
     pa.key("1944-10-20 00", *PART_OCT44, span=15)
-    pa.key("1944-12-15 00", *PART_DEC44, span=25)
-    pa.key("1945-04-15 00", *PART_APR45, span=30)
+    pa.key("1944-10-21 00", *PART_OCT44, mask=lambda: W.unit("SRB") & W.poly([(45.2, 20.0), (45.2, 22.9), (43.6, 22.9), (43.6, 20.0)]), span=1)
+    # Belgrade liberated 20 Oct 1944 (Partisans with the Red Army); by December all of
+    # Serbia east of the Syrmian front (~19.3E) is Partisan-held
+    serbia_e = lambda: (W.unit("SRB") | W.unit("KOS")) & W.poly([(46.3, 19.35), (46.3, 23.2), (41.8, 23.2), (41.8, 19.35)])  # noqa: E731
+    pa.key("1944-12-15 00", *PART_DEC44, mask=serbia_e, span=25)
+    pa.key("1945-04-15 00", *PART_APR45, mask=lambda: W.unit("SRB") | W.unit("KOS"), span=30)
     yu = lambda: (W.unit("HRV") | W.unit("BIH") | W.unit("SRB") | W.unit("MNE") | W.unit("MKD") |  # noqa: E731
                   W.unit("SVN") | W.unit("KOS") | W.poly([(46.0, 13.4), (46.0, 14.2), (45.4, 14.2), (45.4, 13.4)]))
     pa.key("1945-05-09 18", mask=yu, span=24)
