@@ -154,7 +154,7 @@ async function main() {
     const len = Math.hypot(tx, ty) || 1; tx /= len; ty /= len;
     const ws = (f < 0.5 ? A[1] : B[1]);
     const side = (onW ? ws : -ws);
-    const off = 46;                                    // px from the line
+    const off = 64;                                    // px from the line
     const x = m[0] + side * -ty * off, y = m[1] + side * tx * off;
     let ang = Math.atan2(ty, tx);
     if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI;
