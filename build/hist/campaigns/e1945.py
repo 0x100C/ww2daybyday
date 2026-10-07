@@ -183,9 +183,9 @@ def build(tl):
         F.key(d, x["line"], e_pockets=x["e"], w_pockets=x["w"], cw=x["cw"], ce=x["ce"],
               src="Ziemke 1968; Glantz 1996; Beevor 2002")
     tl.pocket("1945-01-25", "1945-02-23", 52.41, 16.93, "Posen: c. 60,000 encircled", side="axis", src="Duffy 1991")
-    tl.pocket("1945-02-15", "1945-05-06", 51.11, 17.03, "Breslau besieged", side="axis", src="Duffy 1991")
-    tl.pocket("1945-03-13", "1945-03-29", 54.55, 20.10, "Heiligenbeil pocket", side="axis", src="Duffy 1991")
-    tl.pocket("1945-04-25", "1945-05-02", 52.50, 13.40, "Berlin encircled", side="axis", src="Beevor 2002")
+    tl.pocket("1945-02-15", "1945-05-06", 51.11, 17.03, "Breslau: c. 80,000 besieged", side="axis", src="Duffy 1991")
+    tl.pocket("1945-03-13", "1945-03-29", 54.55, 20.10, "Heiligenbeil: c. 150,000 encircled", side="axis", src="Duffy 1991")
+    tl.pocket("1945-04-25", "1945-05-02", 52.50, 13.40, "Berlin: c. 100,000 encircled", side="axis", src="Beevor 2002")
     tl.pocket("1945-04-25", "1945-05-01", 52.10, 13.80, "Halbe: c. 200,000 encircled", side="axis", src="Beevor 2002")
     for d, t in [
         ("1945-01-12", "The Vistula-Oder offensive begins"),

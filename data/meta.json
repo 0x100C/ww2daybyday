@@ -1831,6 +1831,60 @@
 ],
 "labels": [
 {
+"t0": 8.0,
+"t1": 11.5,
+"lat": 51.2,
+"lon": 21.15,
+"text": "Radom: c. 60,000 encircled",
+"side": "allied",
+"src": "Zaloga & Madej 1985"
+},
+{
+"t0": 11.0,
+"t1": 20.0,
+"lat": 52.2,
+"lon": 20.0,
+"text": "Bzura: c. 120,000 encircled",
+"side": "allied",
+"src": "Zaloga & Madej 1985"
+},
+{
+"t0": 14.0,
+"t1": 27.5,
+"lat": 52.23,
+"lon": 21.0,
+"text": "Warsaw: c. 140,000 besieged",
+"side": "allied",
+"src": "Zaloga & Madej 1985"
+},
+{
+"t0": 12.0,
+"t1": 28.5,
+"lat": 52.43,
+"lon": 20.7,
+"text": "Modlin: c. 30,000 besieged",
+"side": "allied",
+"src": "Zaloga & Madej 1985"
+},
+{
+"t0": 11.0,
+"t1": 21.5,
+"lat": 49.84,
+"lon": 24.03,
+"text": "Lwow: c. 20,000 besieged",
+"side": "allied",
+"src": "Zaloga & Madej 1985"
+},
+{
+"t0": 0.0,
+"t1": 31.0,
+"lat": 54.62,
+"lon": 18.8,
+"text": "Hel: c. 2,800 encircled",
+"side": "allied",
+"src": "Zaloga & Madej 1985"
+},
+{
 "t0": 268.0,
 "t1": 277.0,
 "lat": 51.03,
@@ -1880,7 +1934,7 @@
 "t1": 1350.5,
 "lat": 36.45,
 "lon": 10.55,
-"text": "Axis forces, Cape Bon",
+"text": "c. 250,000 surrendered",
 "side": "axis",
 "src": ""
 },
@@ -1943,7 +1997,7 @@
 "t1": 776.0,
 "lat": 46.48,
 "lon": 30.73,
-"text": "Odessa besieged",
+"text": "Odessa: c. 80,000 besieged",
 "side": "allied",
 "src": ""
 },
@@ -1954,7 +2008,7 @@
 "lon": 30.31,
 "text": "Leningrad besieged",
 "side": "allied",
-"src": ""
+"src": "Glantz 2002"
 },
 {
 "t0": 873.0,
@@ -2069,7 +2123,7 @@
 "t1": 2074.0,
 "lat": 51.11,
 "lon": 17.03,
-"text": "Breslau besieged",
+"text": "Breslau: c. 80,000 besieged",
 "side": "axis",
 "src": "Duffy 1991"
 },
@@ -2078,7 +2132,7 @@
 "t1": 2036.0,
 "lat": 54.55,
 "lon": 20.1,
-"text": "Heiligenbeil pocket",
+"text": "Heiligenbeil: c. 150,000 encircled",
 "side": "axis",
 "src": "Duffy 1991"
 },
@@ -2087,7 +2141,7 @@
 "t1": 2070.0,
 "lat": 52.5,
 "lon": 13.4,
-"text": "Berlin encircled",
+"text": "Berlin: c. 100,000 encircled",
 "side": "axis",
 "src": "Beevor 2002"
 },
@@ -2114,7 +2168,7 @@
 "t1": 1838.5,
 "lat": 49.52,
 "lon": 0.15,
-"text": "",
+"text": "Le Havre: c. 11,300",
 "side": "axis",
 "src": "Ellis 1968; Stacey 1960"
 },
@@ -2123,7 +2177,7 @@
 "t1": 1845.5,
 "lat": 48.4,
 "lon": -4.45,
-"text": "",
+"text": "Brest: c. 38,000",
 "side": "axis",
 "src": "Ellis 1968; Stacey 1960"
 },
@@ -2132,7 +2186,7 @@
 "t1": 2077.5,
 "lat": 51.0,
 "lon": 2.38,
-"text": "",
+"text": "Dunkirk: c. 12,000",
 "side": "axis",
 "src": "Ellis 1968; Stacey 1960"
 },
@@ -2141,7 +2195,7 @@
 "t1": 2078.5,
 "lat": 47.75,
 "lon": -3.35,
-"text": "",
+"text": "Lorient: c. 25,000",
 "side": "axis",
 "src": "Ellis 1968; Stacey 1960"
 },
@@ -2150,7 +2204,7 @@
 "t1": 2079.5,
 "lat": 47.28,
 "lon": -2.2,
-"text": "",
+"text": "St-Nazaire: c. 28,000",
 "side": "axis",
 "src": "Ellis 1968; Stacey 1960"
 },
@@ -2159,7 +2213,7 @@
 "t1": 2077.5,
 "lat": 46.15,
 "lon": -1.2,
-"text": "",
+"text": "La Rochelle: c. 18,000",
 "side": "axis",
 "src": "Ellis 1968; Stacey 1960"
 },
@@ -2168,7 +2222,7 @@
 "t1": 2056.5,
 "lat": 45.62,
 "lon": -1.05,
-"text": "",
+"text": "Royan: c. 5,500",
 "side": "axis",
 "src": "Ellis 1968; Stacey 1960"
 },
@@ -2177,7 +2231,7 @@
 "t1": 1816.75,
 "lat": 48.82,
 "lon": -0.1,
-"text": "Falaise pocket",
+"text": "Falaise: c. 50,000 captured",
 "side": "axis",
 "src": "Blumenson 1961"
 },
@@ -2186,7 +2240,7 @@
 "t1": 1943.5,
 "lat": 50.0,
 "lon": 5.72,
-"text": "Bastogne",
+"text": "Bastogne: c. 22,000 encircled",
 "side": "allied",
 "src": "Cole 1965"
 },

@@ -259,6 +259,14 @@ SOVIET = {
 
 
 def build(tl):
+    for a, b, lat, lon, txt in [
+            ("1939-09-09", "1939-09-12 12", 51.20, 21.15, "Radom: c. 60,000 encircled"),
+            ("1939-09-12", "1939-09-21", 52.20, 20.00, "Bzura: c. 120,000 encircled"),
+            ("1939-09-15", "1939-09-28 12", 52.23, 21.00, "Warsaw: c. 140,000 besieged"),
+            ("1939-09-13", "1939-09-29 12", 52.43, 20.70, "Modlin: c. 30,000 besieged"),
+            ("1939-09-12", "1939-09-22 12", 49.84, 24.03, "Lwow: c. 20,000 besieged"),
+            ("1939-09-01", "1939-10-02", 54.62, 18.80, "Hel: c. 2,800 encircled")]:
+        tl.pocket(a, b, lat, lon, txt, side="allied", src="Zaloga & Madej 1985")
     import zlib
     import numpy as np
     from core import world

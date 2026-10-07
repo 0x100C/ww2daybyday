@@ -312,8 +312,8 @@ def build(tl):
     tl.pocket("1941-09-14", "1941-09-26", 50.40, 32.30, "c. 665,000 captured", src="Stahel 2012")
     tl.pocket("1941-10-07", "1941-10-20", 55.15, 34.00, "Vyazma-Bryansk: c. 670,000 captured", src="Glantz 2001")
     tl.pocket("1941-10-07", "1941-10-10", 47.10, 36.30, "c. 100,000 captured", src="Glantz 2001")
-    tl.pocket("1941-08-13", "1941-10-16", 46.48, 30.73, "Odessa besieged", src="")
-    tl.pocket("1941-09-08", "1942-01-01", 59.94, 30.31, "Leningrad besieged", src="")
+    tl.pocket("1941-08-13", "1941-10-16", 46.48, 30.73, "Odessa: c. 80,000 besieged", src="")
+    tl.pocket("1941-09-08", "1942-01-01", 59.94, 30.31, "Leningrad besieged", src="Glantz 2002")
     for d, t in [
         ("1941-06-22", "Germany and its allies invade the Soviet Union"),
         ("1941-06-28", "Minsk falls; two Soviet armies are trapped west of the city"),

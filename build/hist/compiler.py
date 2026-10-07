@@ -44,7 +44,94 @@ class Group:
         self.idx, self.owner, self.frac, self.src = idx, owner, frac, src
 
 
-def sweep_fracs(cells_mask, new_owner, prev_control, water):
+_MOBILITY = None
+
+
+def mobility():
+    """Per-cell advance cost (lower = faster). Armies advance along roads and
+    railways and through towns, so spearheads push ahead along the transport
+    network and leave slower ground behind, giving the jagged, finger-like
+    fronts seen in the reference. Built from the basemap ink channel (roads,
+    rail, built-up areas) of the z6 tiles, resampled to the grid, plus a
+    little deterministic noise; cached in build/cache/mobility.npy."""
+    global _MOBILITY
+    if _MOBILITY is not None:
+        return _MOBILITY
+    import os
+    from PIL import Image
+    here = os.path.dirname(os.path.abspath(__file__))
+    cache = os.path.join(here, "..", "cache", "mobility.npy")
+    if os.path.exists(cache):
+        _MOBILITY = np.load(cache)
+        return _MOBILITY
+    sys.path.insert(0, os.path.join(here, ".."))
+    import geo
+    z = 6
+    x0, x1, y0, y1 = geo.tile_range(z)
+    T = geo.TILE
+    mos = np.zeros(((y1 - y0 + 1) * T, (x1 - x0 + 1) * T), np.float32)
+    tiles = os.path.join(here, "..", "..", "data", "tiles", str(z))
+    for x in range(x0, x1 + 1):
+        for y in range(y0, y1 + 1):
+            p = os.path.join(tiles, f"{x}_{y}_m.webp")
+            if os.path.exists(p):
+                mos[(y - y0) * T:(y - y0 + 1) * T, (x - x0) * T:(x - x0 + 1) * T] = \
+                    np.asarray(Image.open(p).convert("RGB"))[:, :, 0] / 255.0
+    n = 2 ** z
+    gy = (geo.MY0 + (np.arange(geo.GRID_H) + 0.5) / geo.GRID_H * (geo.MY1 - geo.MY0)) * n * T - y0 * T
+    gx = (geo.MX0 + (np.arange(geo.GRID_W) + 0.5) / geo.GRID_W * (geo.MX1 - geo.MX0)) * n * T - x0 * T
+    ink = ndimage.map_coordinates(mos, np.meshgrid(gy, gx, indexing="ij"), order=1)
+    # the ink channel also holds coastlines and lake shores: drop ink near water
+    from core import world
+    water = ~world().land
+    ink = np.where(ndimage.binary_dilation(water, iterations=3), 0, ink)
+    ink = ndimage.maximum_filter(ink, 2)                     # keep thin roads after resampling
+    # road/rail density over ~10-15 km: armoured columns advance along corridors
+    dens = ndimage.gaussian_filter(ink, 4.0)
+    dens = np.clip(dens / (np.percentile(dens[dens > 0], 97) + 1e-6), 0, 1)
+    # large-scale unevenness (~40 km): salients and lagging sectors of the front
+    rng = np.random.default_rng(1939)
+    noise = ndimage.gaussian_filter(rng.standard_normal(ink.shape).astype(np.float32), 14)
+    noise /= np.percentile(np.abs(noise), 99) + 1e-6
+    cost = (0.25 + 0.95 * (1.0 - dens) ** 1.5) * (1.0 + 0.6 * np.clip(noise, -1, 1))
+    _MOBILITY = np.clip(cost, 0.12, 2.0).astype(np.float32)
+    np.save(cache, _MOBILITY)
+    return _MOBILITY
+
+
+ROUGH_BAND = 14  # cells (~24 km) either side of a drawn line
+
+
+def roughen(m):
+    """Ragged front edge: within ROUGH_BAND of a drawn boundary, fast cells
+    (road and rail corridors) just outside are taken (spearheads) and slow
+    cells just inside are given up (bypassed ground). Deterministic: depends
+    only on the mask and the static mobility field. Small rings (pockets,
+    beachheads) are not eroded so they cannot vanish."""
+    if not m.any() or m.all():
+        return m
+    edge = m ^ ndimage.binary_erosion(m)
+    if not edge.any():
+        return m
+    y0, y1, x0, x1 = bbox(edge, pad=ROUGH_BAND + 2)
+    mc = m[y0:y1, x0:x1]
+    cost = mobility()[y0:y1, x0:x1]
+    d_out = ndimage.distance_transform_edt(~mc)
+    d_in = ndimage.distance_transform_edt(mc)
+    u = np.clip((cost - 0.3) / 1.4, 0, 1)          # 0 = fastest corridor, 1 = slowest ground
+    add = (~mc) & (d_out <= ROUGH_BAND * np.clip((0.55 - u) / 0.55, 0, 1))
+    lab, n = ndimage.label(mc)
+    big = np.zeros(n + 1, bool)
+    if n:
+        sizes = ndimage.sum(mc, lab, index=np.arange(1, n + 1))
+        big[1:] = sizes > 4000
+    rem = mc & big[lab] & (d_in <= ROUGH_BAND * np.clip((u - 0.45) / 0.55, 0, 1))
+    out = m.copy()
+    out[y0:y1, x0:x1] = (mc | add) & ~rem
+    return out
+
+
+def sweep_fracs(cells_mask, new_owner, prev_control, water, cost_field=None):
     """Arrival fraction (0..1) for every cell of cells_mask (bool, cropped),
     by geodesic distance from cells adjacent to territory already held by
     the cell's new owner. Normalised per connected component."""
@@ -72,7 +159,7 @@ def sweep_fracs(cells_mask, new_owner, prev_control, water):
             ys, xs = np.nonzero(lab == c)
             k = np.argmin((ys - ys.mean()) ** 2 + (xs - xs.mean()) ** 2)
             start[ys[k], xs[k]] = True
-    cost = np.where(cells_mask, 1.0, np.inf)
+    cost = np.where(cells_mask, 1.0 if cost_field is None else cost_field, np.inf)
     mcp = MCP_Geometric(cost)
     starts = list(zip(*np.nonzero(start)))
     dist, _ = mcp.find_costs(starts)
@@ -163,7 +250,10 @@ def compile_timeline(tl, log=sys.stderr, checkpoints=None):
                 st["mask"], st["inv"] = None, False
                 new = None
             else:
-                st["mask"], st["inv"] = rasterize(spec), inv
+                m = rasterize(spec)
+                if spec[0]:          # hand-drawn polygons get the ragged, road-driven front edge
+                    m = roughen(m)
+                st["mask"], st["inv"] = m, inv
                 new = ~st["mask"] if inv else st["mask"]
             prev_t = st["t"]
             st["t"] = t
@@ -215,10 +305,11 @@ def compile_timeline(tl, log=sys.stderr, checkpoints=None):
             newc = control[y0:y1, x0:x1]
             prevc = prev_control[y0:y1, x0:x1]
             wat = water[y0:y1, x0:x1]
+            mob = mobility()[y0:y1, x0:x1]
             fr = np.zeros(gc.shape, np.float32)
             for owner in np.unique(newc[gc]):
                 sub = gc & (newc == owner)
-                f = sweep_fracs(sub, owner, prevc, wat)
+                f = sweep_fracs(sub, owner, prevc, wat, mob)
                 fr[sub] = f[sub]
             yy, xx = np.nonzero(gc)
             idx = (yy + y0) * Wd + (xx + x0)

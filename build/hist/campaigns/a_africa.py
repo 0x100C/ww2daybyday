@@ -195,7 +195,7 @@ def build(tl):
     for d, line, cw, ce in TUNISIA:
         tf.key(d, line, cw=cw, ce=ce)
     tf.end("1943-05-13 12")
-    tl.pocket("1943-05-08 12", "1943-05-13 12", 36.45, 10.55, "Axis forces, Cape Bon", side="axis")
+    tl.pocket("1943-05-08 12", "1943-05-13 12", 36.45, 10.55, "c. 250,000 surrendered", side="axis")
 
     for d, t in [("1940-06-11", "British raids across the Libyan frontier"),
                  ("1940-09-13", "The Italian Tenth Army advances into Egypt"),

@@ -273,16 +273,16 @@ def build(tl):
     tl.political("1944-11-25", lambda: W.prov("FRA", "Bas-Rhin", "Moselle"), "FRA", where=["GER"], dur=2.0)
     tl.political("1945-02-09", lambda: W.prov("FRA", "Haute-Rhin"), "FRA", where=["GER"], dur=1.0)
 
-    for lat, lon, a, b, txt in [(49.52, 0.15, "1944-09-01", "1944-09-12 12", "Le Havre"),
-                                (48.40, -4.45, "1944-08-07", "1944-09-19 12", "Brest"),
-                                (51.00, 2.38, "1944-09-05", "1945-05-09 12", "Dunkirk"),
-                                (47.75, -3.35, "1944-08-10", "1945-05-10 12", "Lorient"),
-                                (47.28, -2.20, "1944-08-12", "1945-05-11 12", "St-Nazaire"),
-                                (46.15, -1.20, "1944-09-12", "1945-05-09 12", "La Rochelle"),
-                                (45.62, -1.05, "1944-09-12", "1945-04-18 12", "Royan")]:
-        tl.pocket(a, b, lat, lon, "", side="axis", src="Ellis 1968; Stacey 1960")
-    tl.pocket("1944-08-17", "1944-08-21 18", 48.82, -0.10, "Falaise pocket", side="axis", src="Blumenson 1961")
-    tl.pocket("1944-12-21", "1944-12-26 12", 50.00, 5.72, "Bastogne", src="Cole 1965")
+    for lat, lon, a, b, txt in [(49.52, 0.15, "1944-09-01", "1944-09-12 12", "Le Havre: c. 11,300"),
+                                (48.40, -4.45, "1944-08-07", "1944-09-19 12", "Brest: c. 38,000"),
+                                (51.00, 2.38, "1944-09-05", "1945-05-09 12", "Dunkirk: c. 12,000"),
+                                (47.75, -3.35, "1944-08-10", "1945-05-10 12", "Lorient: c. 25,000"),
+                                (47.28, -2.20, "1944-08-12", "1945-05-11 12", "St-Nazaire: c. 28,000"),
+                                (46.15, -1.20, "1944-09-12", "1945-05-09 12", "La Rochelle: c. 18,000"),
+                                (45.62, -1.05, "1944-09-12", "1945-04-18 12", "Royan: c. 5,500")]:
+        tl.pocket(a, b, lat, lon, txt, side="axis", src="Ellis 1968; Stacey 1960")
+    tl.pocket("1944-08-17", "1944-08-21 18", 48.82, -0.10, "Falaise: c. 50,000 captured", side="axis", src="Blumenson 1961")
+    tl.pocket("1944-12-21", "1944-12-26 12", 50.00, 5.72, "Bastogne: c. 22,000 encircled", src="Cole 1965")
     tl.pocket("1945-04-01", "1945-04-18 18", 51.35, 7.60, "Ruhr pocket: 317,000 captured", side="axis",
               src="MacDonald 1973")
     for d, t in [("1944-06-06", "D-Day: the Allies land in Normandy"),

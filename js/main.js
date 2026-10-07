@@ -64,7 +64,11 @@ async function main() {
   const strengths = await fetch('data/strengths.json').then((x) => (x.ok ? x.json() : { fronts: [] })).catch(() => ({ fronts: [] }));
   const tracks = [];
   for (const f of strengths.fronts) for (const s of f.sides) {
-    tracks.push({ side: s.label_side || s.side, a: s.a.map(([d, n, lat, lon, ang]) => ({ t: parseT(d), n, lat, lon, ang })) });
+    tracks.push({
+      side: s.label_side || s.side,
+      a: s.a.map(([d, n, lat, lon, ang]) => ({ t: parseT(d), n, lat, lon, ang })),
+      n: s.n ? s.n.map(([d, n]) => ({ t: parseT(d), n })) : null,
+    });
   }
   app.tracks = tracks;
   app.terr = terr;
@@ -81,6 +85,10 @@ async function main() {
   const params = new URLSearchParams(location.search);
   if (params.get('date')) app.t = Math.max(0, dayOf(params.get('date')) + (+params.get('h') || 0) / 24);
   if (params.get('view') === 'poland') r.setCamera({ x: mercX(19.5), y: millerY(52.0), s: 256 * 2 ** 6.2 });
+  if (params.get('cam')) {
+    const [lon, lat, z] = params.get('cam').split(',').map(Number);
+    r.setCamera({ x: mercX(lon), y: millerY(lat), s: 256 * 2 ** z });
+  }
   if (params.get('play') === '1') app.playing = true;
   if (params.get('speed')) app.speed = +params.get('speed');
 
@@ -106,7 +114,12 @@ async function main() {
     r.uploadPalette(palette(meta.units, app.t));
     const day = Math.floor(app.t * 4) / 4;
     if (day !== app.warDay) { r.uploadWar(warMatrix(meta.units, app.t)); app.warDay = day; }
-    r.draw(app.t - app.win);
+    // redraw the map only when something it depends on changed (time, camera, toggles, data)
+    const camKey = `${r.cam.x},${r.cam.y},${r.cam.s},${r.canvas.width},${r.canvas.height},${r.opts.borders}${r.opts.fronts}${r.opts.hatch}`;
+    if (app.t !== app.drawnT || camKey !== app.drawnCam || r.terrainDirty || app.win !== app.drawnWin) {
+      r.draw(app.t - app.win);
+      app.drawnT = app.t; app.drawnCam = camKey; app.drawnWin = app.win;
+    }
     drawOverlay(ctx, r, app.t, now);
     syncUi();
     requestAnimationFrame(frame);
@@ -130,7 +143,15 @@ async function main() {
       const p = a[i], q = a[i + 1] || p;
       const f = q.t > p.t ? Math.min(1, Math.max(0, (t - p.t) / (q.t - p.t))) : 0;
       const lerp = (u, v) => u + (v - u) * f;
-      const n = lerp(p.n, q.n);
+      let n = lerp(p.n, q.n);
+      if (tr.n) {
+        const b = tr.n;
+        let j = 0;
+        while (j < b.length - 2 && b[j + 1].t < t) j++;
+        const u = b[j], v = b[j + 1] || u;
+        const g = v.t > u.t ? Math.min(1, Math.max(0, (t - u.t) / (v.t - u.t))) : 0;
+        n = u.n + (v.n - u.n) * g;
+      }
       if (n < 500) continue;
       const fade = Math.min(1, (t - a[0].t) * 2, (a[a.length - 1].t - t) * 2);
       const [sx, sy] = rr.toScreen(mercX(lerp(p.lon, q.lon)), millerY(lerp(p.lat, q.lat)));
@@ -139,14 +160,14 @@ async function main() {
       c.globalAlpha = fade;
       c.translate(x, y);
       c.rotate(lerp(p.ang, q.ang) * Math.PI / 180);
-      c.font = '600 26px "Segoe UI", "Open Sans", Calibri, Arial, sans-serif';
+      // reference style: bold white figures with a soft glow in the side's colour
+      c.font = '700 27px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.lineJoin = 'round';
-      c.lineWidth = 4;
-      const allied = tr.side === 'allied';
-      c.strokeStyle = allied ? 'rgba(40,70,130,0.7)' : 'rgba(25,27,30,0.6)';
-      c.strokeText(fmt(n), 0, 0);
-      c.fillStyle = allied ? '#e6eeff' : '#ffffff';
+      const glow = { allied: 'rgba(38,78,170,0.95)', soviet: 'rgba(120,40,25,0.85)' }[tr.side] || 'rgba(20,22,24,0.85)';
+      c.shadowColor = glow; c.shadowBlur = 7;
+      c.fillStyle = '#ffffff';
+      c.fillText(fmt(n), 0, 0);
+      c.shadowBlur = 3;
       c.fillText(fmt(n), 0, 0);
       c.restore();
     }
@@ -200,13 +221,16 @@ async function main() {
         c.strokeStyle = '#ffffff'; c.lineWidth = 2;
         c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
       }
-      if (L.text) {
-        c.font = '600 17px "Segoe UI", "Open Sans", Calibri, Arial, sans-serif';
+      // reference style: "324.000 Encircled" (dots as thousands separators)
+      const text = (L.text || '').replace(/(\d),(?=\d{3})/g, '$1.').replace(/\bc\. /g, '')
+        .replace(/\b(encircled|captured|besieged|surrendered|cut off|evacuated)\b/, (w) => w[0].toUpperCase() + w.slice(1));
+      if (text) {
+        c.font = '700 19px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif';
         c.textAlign = 'center'; c.textBaseline = 'bottom';
-        c.lineWidth = 4; c.strokeStyle = 'rgba(25,27,30,0.75)';
-        c.strokeText(L.text, x, y - rad - 10);
+        c.shadowColor = 'rgba(20,22,24,0.85)'; c.shadowBlur = 6;
         c.fillStyle = '#ffffff';
-        c.fillText(L.text, x, y - rad - 10);
+        c.fillText(text, x, y - rad - 10);
+        c.shadowBlur = 0;
         c.textAlign = 'left';
       }
       c.globalAlpha = 1;

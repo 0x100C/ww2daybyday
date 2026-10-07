@@ -52,13 +52,14 @@ uniform float uPx;          // device pixel ratio
 uniform float uBorders, uFronts, uHatch;
 
 const float PI = 3.14159265358979;
-// screen pixel -> territory grid coords (Miller display -> latitude -> Mercator grid)
+// screen pixel -> territory grid coords. x is linear; the Miller -> Mercator
+// row mapping depends only on the screen row, so it is precomputed per row
+// on the CPU (uRowY) instead of evaluating exp/atan/log/tan per fragment.
+uniform highp sampler2D uRowY;
 vec2 gridAt(vec2 px){
-  vec2 w = uW0 + px * uWs;
-  float Y = (0.5 - w.y) * 2.0 * PI / 1.25;
-  float phi = (atan(exp(Y)) - PI / 4.0) / 0.4;
-  float my = 0.5 - log(tan(PI / 4.0 + phi / 2.0)) / (2.0 * PI);
-  return vec2((w.x - uM0.x) * uGsc.x, (my - uM0.y) * uGsc.y);
+  float wx = uW0.x + px.x * uWs.x;
+  int row = clamp(int(floor(px.y)), 0, int(uRes.y) - 1);
+  return vec2((wx - uM0.x) * uGsc.x, texelFetch(uRowY, ivec2(row, 0), 0).r);
 }
 
 ivec2 cellOf(vec2 g){ return clamp(ivec2(floor(g)), ivec2(0), ivec2(uGridSize) - 1); }
@@ -419,6 +420,27 @@ export class Renderer {
     gl.uniform2f(u.uWs, 1 / s, 1 / s);
     gl.uniform2f(u.uM0, GEO.MX0, GEO.MY0);
     gl.uniform2f(u.uGsc, gsx, gsy);
+    // per-row grid y (Miller display row -> latitude -> Mercator grid row)
+    const rowKey = `${c.y},${s},${H}`;
+    if (rowKey !== this.rowKey) {
+      this.rowKey = rowKey;
+      const rows = new Float32Array(H);
+      for (let j = 0; j < H; j++) {
+        const lat = invMillerLat(wy0 + (j + 0.5) / s);
+        rows[j] = (mercYc(lat) - GEO.MY0) * gsy;
+      }
+      if (!this.texRow || this.texRowH !== H) {
+        if (this.texRow) gl.deleteTexture(this.texRow);
+        this.texRow = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.texRow);
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F, H, 1);
+        for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, p, gl.NEAREST);
+        this.texRowH = H;
+      }
+      gl.bindTexture(gl.TEXTURE_2D, this.texRow);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, H, 1, gl.RED, gl.FLOAT, rows);
+    }
     gl.uniform1f(u.uTn, tn);
     gl.uniform1f(u.uPx, this.dpr);
     gl.uniform1f(u.uBorders, this.opts.borders ? 1 : 0);
@@ -430,6 +452,7 @@ export class Renderer {
     bind(2, this.texTime, 'uTime');
     bind(3, this.texPal, 'uPal');
     bind(4, this.texWar, 'uWar');
+    bind(5, this.texRow, 'uRowY');
     gl.uniform4f(u.uRect, -1, -1, 1, 1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
