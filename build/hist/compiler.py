@@ -100,7 +100,7 @@ def mobility():
 
 
 T_PEACE = T("1945-05-08 12")   # end of the war in Europe
-ROUGH_BAND = 14  # cells (~24 km) either side of a drawn line
+ROUGH_BAND = 26  # cells (~45 km) either side of a drawn line
 
 
 def roughen(m):
