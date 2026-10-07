@@ -3,7 +3,7 @@
  "fronts": [
   {
    "id": "poland-1939",
-   "src": "Zaloga & Madej 1985; Meltyukhov 2001",
+   "src": "Zaloga & Madej, The Polish Campaign 1939 (1985); Meltyukhov, Sovetsko-polskie voiny (2001). German: forces deployed against Poland (~1.5M), losses ~44,000 killed and wounded. Polish: field strength; mobilisation ~2/3 complete on 1 Sep, peaking ~5 Sep, then collapsing (c. 420,000 PoW to Germany, 240,000 to the USSR). Soviet: Belorussian and Ukrainian Fronts on 17 Sep.",
    "sides": [
     {
      "side": "axis",
@@ -35,6 +35,24 @@
        52.0,
        19.0,
        72
+      ]
+     ],
+     "n": [
+      [
+       "1939-09-01",
+       1500000
+      ],
+      [
+       "1939-09-10",
+       1485000
+      ],
+      [
+       "1939-09-20",
+       1470000
+      ],
+      [
+       "1939-10-06 12",
+       1456000
       ]
      ]
     },
@@ -76,6 +94,36 @@
        23.0,
        72
       ]
+     ],
+     "n": [
+      [
+       "1939-09-01",
+       700000
+      ],
+      [
+       "1939-09-05",
+       840000
+      ],
+      [
+       "1939-09-10",
+       700000
+      ],
+      [
+       "1939-09-17",
+       450000
+      ],
+      [
+       "1939-09-22",
+       250000
+      ],
+      [
+       "1939-09-28",
+       120000
+      ],
+      [
+       "1939-10-06 12",
+       17000
+      ]
      ]
     },
     {
@@ -94,6 +142,16 @@
        52.3,
        25.8,
        72
+      ]
+     ],
+     "n": [
+      [
+       "1939-09-17",
+       466516
+      ],
+      [
+       "1939-10-06 12",
+       466516
       ]
      ]
     }

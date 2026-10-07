@@ -64,9 +64,39 @@ vec2 gridAt(vec2 px){
 
 ivec2 cellOf(vec2 g){ return clamp(ivec2(floor(g)), ivec2(0), ivec2(uGridSize) - 1); }
 
-// returns control id, country id, pending amount
+// Smoothed ownership: instead of the nearest cell's owner (which draws grid
+// stair-steps), take the owner with the largest bilinear weight among the
+// four surrounding cells - the 0.5 contour of each owner's coverage, so
+// borders and fronts follow smooth diagonals through the same cell edges.
+vec3 ownerCell(ivec2 c, vec2 g);
 vec3 ownerAt(vec2 g){
-  ivec2 c = cellOf(g);
+  vec2 h = g - 0.5;
+  ivec2 b = ivec2(floor(h));
+  vec2 f = fract(h);
+  ivec2 hi = ivec2(uGridSize) - 1;
+  vec3 o0 = ownerCell(clamp(b, ivec2(0), hi), g);
+  vec3 o1 = ownerCell(clamp(b + ivec2(1, 0), ivec2(0), hi), g);
+  vec3 o2 = ownerCell(clamp(b + ivec2(0, 1), ivec2(0), hi), g);
+  vec3 o3 = ownerCell(clamp(b + ivec2(1, 1), ivec2(0), hi), g);
+  float w0 = (1.0 - f.x) * (1.0 - f.y), w1 = f.x * (1.0 - f.y), w2 = (1.0 - f.x) * f.y, w3 = f.x * f.y;
+  vec3 o[4] = vec3[](o0, o1, o2, o3);
+  float w[4] = float[](w0, w1, w2, w3);
+  float bestC = -1.0, bestY = -1.0, ctl = o0.x, cty = o0.y;
+  for (int i = 0; i < 4; i++) {
+    float sc = 0.0, sy = 0.0;
+    for (int j = 0; j < 4; j++) {
+      if (o[j].x == o[i].x) sc += w[j];
+      if (o[j].y == o[i].y) sy += w[j];
+    }
+    if (sc > bestC) { bestC = sc; ctl = o[i].x; }
+    if (sy > bestY) { bestY = sy; cty = o[i].y; }
+  }
+  float pend = w0 * o0.z + w1 * o1.z + w2 * o2.z + w3 * o3.z;
+  return vec3(ctl, cty, pend);
+}
+
+// one cell: control id, country id, pending amount
+vec3 ownerCell(ivec2 c, vec2 g){
   vec4 st = texelFetch(uState, c, 0);
   vec4 tm = texelFetch(uTime, c, 0);
   float arr = texture(uTime, g / uGridSize).r;

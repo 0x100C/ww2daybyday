@@ -136,6 +136,7 @@ class Territory {
 //   time : R arrival (smooth), G pending start, B arrival (exact), A country switch
 // Fractions are window-relative 0..255; 255 in B/R means "not within window".
 export class WindowBuffers {
+  static LEAD = 0.8;   // days the pale band runs ahead of each cell's capture
   constructor(terr) {
     this.T = terr;
     const N = terr.N;
@@ -176,16 +177,21 @@ export class WindowBuffers {
     }
     const span = w1 - w0;
     const q = (t) => Math.max(0, Math.min(255, Math.round((t - w0) / span * 255)));
-    // control groups overlapping the window: arrivals, pending band, halo
+    // Control groups overlapping the window: arrivals, pending band, halo.
+    // The pale "being taken" band starts a fixed LEAD before each cell's own
+    // arrival (not at the start of its key), so it is a strip of constant
+    // width that flows ahead of the front across key boundaries instead of
+    // popping in as a whole new patch at each key.
+    const LEAD = WindowBuffers.LEAD;
     const changing = [];
     for (const g of T.ctlGroups) {
-      if (g.t0 >= w1) break;
+      if (g.t0 - LEAD >= w1) break;
       if (g.t1 <= w0) continue;
-      const ps = q(g.t0);
       for (let c = 0; c < g.idx.length; c++) {
         const t = g.arr[c];
-        if (t <= w0) continue;
+        if (t <= w0 || t - LEAD >= w1) continue;
         const i = g.idx[c], o = i * 4;
+        const ps = q(Math.max(g.t0, t - LEAD));
         if (ps < M[o + 1]) M[o + 1] = ps;
         if (t <= w1) {
           S[o + 1] = g.owner[c];
