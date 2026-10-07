@@ -27,7 +27,7 @@ from scipy import ndimage
 from skimage.graph import MCP_Geometric
 
 from core import world
-from timeline import rasterize, MAX_SPAN
+from timeline import rasterize, MAX_SPAN, T
 from units import BY_CODE
 
 # country units whose own territory is held by another power's forces
@@ -99,6 +99,7 @@ def mobility():
     return _MOBILITY
 
 
+T_PEACE = T("1945-05-08 12")   # end of the war in Europe
 ROUGH_BAND = 14  # cells (~24 km) either side of a drawn line
 
 
@@ -219,6 +220,7 @@ def compile_timeline(tl, log=sys.stderr, checkpoints=None):
 
     control = composite()
     base_control = control.copy()
+    last_ctl = np.full(control.size, -np.inf)   # time of each cell's latest scheduled control change
     groups = []
     snaps = {}
     checkpoints = sorted(checkpoints or [])
@@ -251,7 +253,10 @@ def compile_timeline(tl, log=sys.stderr, checkpoints=None):
                 new = None
             else:
                 m = rasterize(spec)
-                if spec[0]:          # hand-drawn polygons get the ragged, road-driven front edge
+                # hand-drawn polygons get the ragged, road-driven front edge while
+                # the war lasts; final post-surrender states keep crisp lines so no
+                # trimmed cell can fall back to a defeated power
+                if spec[0] and t < T_PEACE:
                     m = roughen(m)
                 st["mask"], st["inv"] = m, inv
                 new = ~st["mask"] if inv else st["mask"]
@@ -315,7 +320,15 @@ def compile_timeline(tl, log=sys.stderr, checkpoints=None):
             idx = (yy + y0) * Wd + (xx + x0)
             order = np.argsort(idx)
             idx = idx[order]
-            frac = np.clip(np.round(fr[yy, xx][order] * 255), 0, 255).astype(np.uint8)
+            f = fr[yy, xx][order]
+            # A cell's change can never be scheduled before its previous change:
+            # a long sweep starting at t0 may overlap events at earlier instants,
+            # and replay in time order would otherwise apply them out of order
+            # (e.g. a withdrawal timed before the occupation it undoes).
+            if t > t0:
+                f = np.maximum(f, (last_ctl[idx] - t0) / (t - t0))
+            frac = np.clip(np.ceil(f * 255 - 1e-6), 0, 255).astype(np.uint8)
+            last_ctl[idx] = t0 + frac / 255.0 * (t - t0)
             groups.append(Group(0, t0, t, idx, control.ravel()[idx].copy(), frac, src))
         if ti % 25 == 0:
             print(f"  instant {ti + 1}/{len(inst)}  groups {len(groups)}", file=log)

@@ -262,8 +262,11 @@ def build(tl):
     # Denmark, Norway, Bornholm
     lib = tl.layer("liberation-scandinavia", "GBR", within=["DNK", "NOR"], order=72)
     bornholm = lambda: W.poly([(55.35, 14.6), (55.35, 15.3), (54.95, 15.3), (54.95, 14.6)])  # noqa: E731
-    lib.key("1945-05-05 08", mask=lambda: W.unit("DNK") & ~bornholm(), span=0.4)
-    lib.key("1945-05-08 23", mask=lambda: (W.unit("DNK") & ~bornholm()) | W.unit("NOR"), span=0.6)
+    # dilated so the coastal fringe painted by the 1940 occupation layers is covered too
+    from scipy.ndimage import binary_dilation
+    dk = lambda: binary_dilation(W.unit("DNK"), iterations=4) & ~bornholm()  # noqa: E731
+    lib.key("1945-05-05 08", mask=dk, span=0.4)
+    lib.key("1945-05-08 23", mask=lambda: dk() | binary_dilation(W.unit("NOR"), iterations=4), span=0.6)
     bh = tl.layer("bornholm-1945", "SOV", within=["DNK"], order=73)
     bh.key("1945-05-09 12", mask=bornholm, span=0.3)
 
