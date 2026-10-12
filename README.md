@@ -25,11 +25,15 @@ It needs a browser with WebGL2 (any current Chrome, Edge, Firefox or Safari).
 - Checkboxes toggle fronts, borders, pocket markers and the sea hatch.
 - The default speed is **2.6 days/s**, the rate the reference video plays at: about 2,075 days in about 795 s.
 
+**Major events.** Press ☰ in the bar (or E) for the event list. Coloured ticks above the slider mark capital captures, breakthroughs, front collapses and encirclements of 100,000+ men. Clicking one flies the camera to the location and jumps to the date. For encirclements it replays the pocket from the start of the pincer movement at a slow speed. Events are in `data/events.json`, each with its source.
+
 **URL parameters**
 - `?date=1941-06-22&h=12` jumps to a given date and hour.
 - `view=poland` zooms to the Poland crop used in the comparisons.
 - `play=1` starts playback.
 - `speed=5` sets days per second.
+- `event=kiev41` opens an event (ids in `data/events.json`).
+- `cam=lon,lat,zoom` sets the camera.
 
 ## Rebuilding the data (optional)
 

@@ -96,6 +96,102 @@ async function main() {
 
   const ctx = overlay.getContext('2d');
 
+  // ---------------------------------------------------------------- major events
+  // Clicking an event flies the camera to it and jumps to its date; for an
+  // encirclement it replays the pocket from the start of the pincer movement
+  // to its destruction at a slow, readable speed.
+  const EV_TYPES = { capital: 'Capital captured', breakthrough: 'Breakthrough', collapse: 'Front collapse', encirclement: 'Encirclement' };
+  const evData = await fetch('data/events.json').then((x) => (x.ok ? x.json() : { events: [] })).catch(() => ({ events: [] }));
+  const events = evData.events.map((e) => ({
+    ...e, t: parseT(e.date), t0: e.form ? parseT(e.form) : null, t1: e.end ? parseT(e.end) : null,
+  })).sort((a, b) => a.t - b.t);
+  const evShown = new Set(Object.keys(EV_TYPES));
+  const fmtN = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const fmtD = (t) => { const d = fmtDate(t); return `${+d.day} ${d.mon[0]}${d.mon.slice(1).toLowerCase()} ${d.year}`; };
+
+  // keep the speed menu showing the actual speed, adding a temporary entry if needed
+  function setSpeedUi(v) {
+    const sel = $('speed');
+    if (![...sel.options].some((o) => +o.value === v)) {
+      sel.querySelectorAll('option[data-tmp]').forEach((o) => o.remove());
+      const o = document.createElement('option');
+      o.value = String(v); o.textContent = `${v} d/s`; o.dataset.tmp = '1';
+      sel.appendChild(o);
+    }
+    sel.value = String(v);
+  }
+  app.setSpeedUi = setSpeedUi;
+
+  function flyTo(lon, lat, zoom, ms = 1400) {
+    const from = { ...r.cam };
+    const to = { x: mercX(lon), y: millerY(lat), s: 256 * 2 ** zoom };
+    app.fly = { from, to, start: performance.now(), ms };
+  }
+  function stepFly(now) {
+    const f = app.fly;
+    if (!f) return;
+    let k = Math.min(1, (now - f.start) / f.ms);
+    k = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;          // ease in-out
+    const ls = Math.log(f.from.s) + (Math.log(f.to.s) - Math.log(f.from.s)) * k;
+    r.setCamera({ x: f.from.x + (f.to.x - f.from.x) * k, y: f.from.y + (f.to.y - f.from.y) * k, s: Math.exp(ls) });
+    clampCamera(r);
+    if (k >= 1) app.fly = null;
+  }
+  app.stepFly = stepFly;
+
+  function showCard(e) {
+    const card = $('ev-card');
+    const span = e.type === 'encirclement'
+      ? `<div><b>${fmtN(e.trapped)}</b> men encircled · pincers ${fmtD(e.t0)}, closed ${fmtD(e.t)}, destroyed ${fmtD(e.t1)}</div>` : '';
+    card.innerHTML = `<button class="x" title="Close">✕</button><h3>${e.title}</h3>
+      <div class="meta">${EV_TYPES[e.type]} · ${fmtD(e.t)}</div><div>${e.text}</div>${span}
+      <div class="actions">${e.type === 'encirclement' ? '<button data-a="replay">▶ Replay pocket</button>' : ''}<button data-a="go">Go to date</button></div>
+      <div class="src">Source: ${e.src}</div>`;
+    card.hidden = false;
+    card.querySelector('.x').onclick = () => { card.hidden = true; app.replay = null; };
+    card.querySelectorAll('.actions button').forEach((b) => { b.onclick = () => openEvent(e, b.dataset.a === 'replay'); });
+  }
+
+  function openEvent(e, replay = e.type === 'encirclement') {
+    flyTo(e.lon, e.lat, e.zoom);
+    document.querySelectorAll('#ev-list li').forEach((li) => li.classList.toggle('on', li.dataset.id === e.id));
+    showCard(e);
+    if (replay && e.t0 != null) {
+      // show the pincers forming: from the start of the movement to destruction (long sieges: the first weeks)
+      app.t = e.t0;
+      const end = Math.min(e.t1, e.t + 12);
+      const days = end - e.t0;
+      app.replay = { end, prevSpeed: app.replay ? app.replay.prevSpeed : app.speed };
+      app.speed = Math.round(Math.max(0.6, Math.min(2.6, days / 14)) * 10) / 10;   // ~10-15 s per pocket
+      setSpeedUi(app.speed);
+      app.playing = true;
+    } else {
+      app.t = e.t;
+      app.playing = false;
+    }
+  }
+
+  function renderEvents() {
+    const filt = $('ev-filters');
+    filt.innerHTML = Object.entries(EV_TYPES).map(([k, v]) =>
+      `<label><input type="checkbox" data-k="${k}" ${evShown.has(k) ? 'checked' : ''}><span class="dot ev-${k}"></span>${v}</label>`).join('');
+    filt.querySelectorAll('input').forEach((c) => { c.onchange = () => { c.checked ? evShown.add(c.dataset.k) : evShown.delete(c.dataset.k); renderEvents(); }; });
+    const list = $('ev-list');
+    list.innerHTML = events.filter((e) => evShown.has(e.type)).map((e) =>
+      `<li data-id="${e.id}"><span class="dot ev-${e.type}"></span><b>${e.title}</b><small>${fmtD(e.t)}${e.trapped ? ' · ' + fmtN(e.trapped) + ' encircled' : ''}</small></li>`).join('');
+    list.querySelectorAll('li').forEach((li) => { li.onclick = () => openEvent(events.find((e) => e.id === li.dataset.id)); });
+    const ticks = $('ticks');
+    ticks.innerHTML = events.filter((e) => evShown.has(e.type)).map((e) =>
+      `<i class="ev-${e.type}" data-id="${e.id}" title="${fmtD(e.t)}: ${e.title}" style="left:${(e.t / app.tEnd * 100).toFixed(3)}%"></i>`).join('');
+    ticks.querySelectorAll('i').forEach((i) => { i.onclick = () => openEvent(events.find((e) => e.id === i.dataset.id)); });
+  }
+  renderEvents();
+  const togglePanel = () => { $('events').hidden = !$('events').hidden; };
+  $('ev-btn').addEventListener('click', togglePanel);
+  $('ev-close').addEventListener('click', togglePanel);
+  window.addEventListener('keydown', (e) => { if (e.code === 'KeyE' && e.target.tagName !== 'INPUT') togglePanel(); });
+  if (params.get('event')) { const e = events.find((x) => x.id === params.get('event')); if (e) openEvent(e); }
+
   function setWindow(t) {
     const w = Math.floor(t);
     if (w === app.win) return;
@@ -110,7 +206,13 @@ async function main() {
     if (app.playing) {
       app.t = Math.min(app.tEnd, app.t + dt * app.speed);
       if (app.t >= app.tEnd) app.playing = false;
+      if (app.replay && app.t >= app.replay.end) {         // pocket replay finished
+        app.playing = false;
+        app.speed = app.replay.prevSpeed; app.setSpeedUi(app.speed);
+        app.replay = null;
+      }
     }
+    if (app.stepFly) app.stepFly(now);
     r.resize();
     setWindow(app.t);
     r.uploadPalette(palette(meta.units, app.t));
@@ -273,7 +375,7 @@ async function main() {
   }
 
   // ---------------------------------------------------------------- input
-  slider.addEventListener('input', () => { app.t = +slider.value; });
+  slider.addEventListener('input', () => { app.t = +slider.value; if (app.replay) { app.speed = app.replay.prevSpeed; app.setSpeedUi(app.speed); app.replay = null; } });
   $('play').addEventListener('click', () => { if (app.t >= app.tEnd) app.t = 0; app.playing = !app.playing; });
   $('speed').addEventListener('change', (e) => { app.speed = +e.target.value; });
   $('speed').value = String(app.speed);
@@ -288,7 +390,7 @@ async function main() {
     if (e.code === 'ArrowLeft') app.t = Math.max(0, Math.ceil(app.t) - step);
   });
   let drag = null;
-  canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointerdown', (e) => { app.fly = null; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', (e) => {
     if (!drag) return;
     r.cam.x -= (e.clientX - drag.x) / r.cam.s;
