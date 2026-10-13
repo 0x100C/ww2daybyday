@@ -1,0 +1,157 @@
+# WW2 Day by Day - campaign logger v0.1
+#
+# Writes one line per event to Documents/Paradox Interactive/Hearts of Iron IV/logs/game.log
+# Format:  WW2DBD|<game date YYYY.MM.DD.HH>|<KIND>|field|field...
+# Only hooks, scopes and localisation functions documented on the HOI4 modding wiki
+# (On actions, Scopes, Localisation pages, snapshot 2026-09) are used.
+# The mod only reads and logs; it changes nothing in the game.
+
+on_actions = {
+
+	# ---------------------------------------------------------------- start / snapshots
+	on_startup = {
+		effect = {
+			log = "WW2DBD|[GetDate]|START|v0.1"
+			every_country = {
+				log = "WW2DBD|[GetDate]|COUNTRY|[THIS.GetTag]|[THIS.GetName]|[THIS.GetFlag]"
+			}
+			every_state = {
+				owner = { log = "WW2DBD|[GetDate]|STATE_OWNER|[PREV.GetID]|[THIS.GetTag]" }
+				controller = { log = "WW2DBD|[GetDate]|STATE_CONTROL|[PREV.GetID]|[THIS.GetTag]" }
+			}
+		}
+	}
+
+	# once a day, for the human player only (on_daily fires for every country)
+	on_daily = {
+		effect = {
+			if = {
+				limit = { is_ai = no }
+				log = "WW2DBD|[GetDate]|DAY"
+			}
+		}
+	}
+
+	# weekly strength figures for every country at war
+	on_weekly = {
+		effect = {
+			if = {
+				limit = { is_ai = no }
+				every_country = {
+					limit = { has_war = yes }
+					log = "WW2DBD|[GetDate]|STATS|[THIS.GetTag]|armies=[?THIS.num_armies]|battalions=[?THIS.num_battalions]|deployed_k=[?THIS.deployed_army_manpower_k]|manpower_k=[?THIS.manpower_k]|states=[?THIS.num_controlled_states]|surrender=[?THIS.surrender_progress]"
+				}
+				# --- division probe: which division-scope values can be printed? (results guide v0.2)
+				every_state = {
+					limit = { any_state_division = { always = yes } }
+					every_state_division = {
+						log = "WW2DBD|[GetDate]|DIVPROBE|state=[PREV.GetID]|name=[THIS.GetName]|owner=[THIS.Owner.GetTag]"
+						if = { limit = { unit_strength > 0.75 } log = "WW2DBD|[GetDate]|DIVSTR|state=[PREV.GetID]|str>0.75" }
+						else_if = { limit = { unit_strength > 0.4 } log = "WW2DBD|[GetDate]|DIVSTR|state=[PREV.GetID]|str>0.4" }
+						else = { log = "WW2DBD|[GetDate]|DIVSTR|state=[PREV.GetID]|str<=0.4" }
+						if = { limit = { division_has_majority_template = light_armor } log = "WW2DBD|[GetDate]|DIVTYPE|state=[PREV.GetID]|armor" }
+						else_if = { limit = { division_has_majority_template = medium_armor } log = "WW2DBD|[GetDate]|DIVTYPE|state=[PREV.GetID]|armor" }
+						else_if = { limit = { division_has_majority_template = motorized } log = "WW2DBD|[GetDate]|DIVTYPE|state=[PREV.GetID]|motorized" }
+						else_if = { limit = { division_has_majority_template = infantry } log = "WW2DBD|[GetDate]|DIVTYPE|state=[PREV.GetID]|infantry" }
+					}
+				}
+			}
+		}
+	}
+
+	# monthly full territorial snapshot (catches anything the control hook misses)
+	on_monthly = {
+		effect = {
+			if = {
+				limit = { is_ai = no }
+				every_state = {
+					controller = { log = "WW2DBD|[GetDate]|STATE_CONTROL|[PREV.GetID]|[THIS.GetTag]" }
+				}
+			}
+		}
+	}
+
+	# ---------------------------------------------------------------- territory
+	# ROOT new controller, FROM old controller, FROM.FROM the state
+	on_state_control_changed = {
+		effect = {
+			log = "WW2DBD|[GetDate]|CONTROL|[FROM.FROM.GetID]|[FROM.GetTag]|[ROOT.GetTag]|[FROM.FROM.GetName]"
+		}
+	}
+	# THIS invaded state, ROOT invader, FROM state the invasion started from
+	on_naval_invasion = {
+		effect = { log = "WW2DBD|[GetDate]|NAVAL_INVASION|[ROOT.GetTag]|to=[THIS.GetID]|from=[FROM.GetID]" }
+	}
+	on_paradrop = {
+		effect = { log = "WW2DBD|[GetDate]|PARADROP|[ROOT.GetTag]|to=[THIS.GetID]|from=[FROM.GetID]" }
+	}
+
+	# ---------------------------------------------------------------- wars and peace
+	on_declare_war = {             # ROOT declares on FROM
+		effect = { log = "WW2DBD|[GetDate]|DECLARE_WAR|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_war_relation_added = {      # ROOT attacker, FROM defender
+		effect = { log = "WW2DBD|[GetDate]|AT_WAR|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_join_allies = {             # ROOT joins the war of FROM
+		effect = { log = "WW2DBD|[GetDate]|JOIN_WAR|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_capitulation_immediate = {  # ROOT capitulated, FROM winner
+		effect = { log = "WW2DBD|[GetDate]|CAPITULATION|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_uncapitulation = {
+		effect = { log = "WW2DBD|[GetDate]|UNCAPITULATION|[ROOT.GetTag]" }
+	}
+	on_peaceconference_started = { # ROOT winner, FROM loser
+		effect = { log = "WW2DBD|[GetDate]|PEACE_START|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_peaceconference_ended = {
+		effect = { log = "WW2DBD|[GetDate]|PEACE_END|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_peace = {                   # THIS no longer at war
+		effect = { log = "WW2DBD|[GetDate]|PEACE|[THIS.GetTag]" }
+	}
+	on_annex = {                   # ROOT winner, FROM annexed
+		effect = { log = "WW2DBD|[GetDate]|ANNEX|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_puppet = {                  # ROOT puppeted, FROM overlord
+		effect = { log = "WW2DBD|[GetDate]|PUPPET|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_liberate = {
+		effect = { log = "WW2DBD|[GetDate]|LIBERATE|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_release_as_free = {
+		effect = { log = "WW2DBD|[GetDate]|RELEASE|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_civil_war_end = {
+		effect = { log = "WW2DBD|[GetDate]|CIVIL_WAR_END|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+
+	# ---------------------------------------------------------------- factions and politics
+	on_create_faction = {
+		effect = { log = "WW2DBD|[GetDate]|FACTION_CREATE|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_join_faction = {            # ROOT joins, FROM faction leader
+		effect = { log = "WW2DBD|[GetDate]|FACTION_JOIN|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_offer_join_faction = {      # FROM invited, ROOT leader
+		effect = { log = "WW2DBD|[GetDate]|FACTION_JOIN|[FROM.GetTag]|[ROOT.GetTag]" }
+	}
+	on_leave_faction = {
+		effect = { log = "WW2DBD|[GetDate]|FACTION_LEAVE|[ROOT.GetTag]" }
+	}
+	on_government_change = {
+		effect = { log = "WW2DBD|[GetDate]|GOVERNMENT|[ROOT.GetTag]|[ROOT.GetName]" }
+	}
+
+	# ---------------------------------------------------------------- combat
+	on_army_leader_won_combat = {  # ROOT unit leader, FROM owner
+		effect = { log = "WW2DBD|[GetDate]|COMBAT_WON|[FROM.GetTag]|[ROOT.GetName]|in_combat=[?ROOT.num_units_in_combat]" }
+	}
+	on_army_leader_lost_combat = {
+		effect = { log = "WW2DBD|[GetDate]|COMBAT_LOST|[FROM.GetTag]|[ROOT.GetName]|in_combat=[?ROOT.num_units_in_combat]" }
+	}
+	on_nuke_drop = {               # ROOT launcher, FROM nuked state
+		effect = { log = "WW2DBD|[GetDate]|NUKE|[ROOT.GetTag]|[FROM.GetID]" }
+	}
+}
