@@ -28,25 +28,14 @@ Each line in `logs/game.log` has the form `WW2DBD|<date>|<KIND>|...`. The hooks 
 | `DIVPROBE`, `DIVSTR`, `DIVTYPE` | Weekly | **Experimental.** See "Division probe" below. |
 | `NUKE` | Nuclear strike | launcher, state |
 
-## Division probe (please send me the result)
+## Divisions (v0.2)
 
-The wiki documents division scopes (`every_state_division`, `every_country_division`) and division triggers (`unit_strength`, `unit_organization`, `division_has_majority_template`). It does not say which names and values can be *printed* from a division scope.
+The v0.1 test on a real game showed that a division's state, type and strength bucket can be logged, but its **name and owner print blank**. v0.2 therefore uses the wiki's country trigger `divisions_in_state` instead. Each week, for every country at war and every state it has divisions in, it logs:
 
-The probe tries the most likely ones each week:
-- the division name;
-- the owner's tag;
-- a strength bucket;
-- a type (armor, motorized or infantry).
+- `DIV|<state>|<country>|<N>`: at least N divisions of that country are in the state.
+- `DIVARM|<state>|<country>|<N>`: at least N of them are armour-majority.
 
-All of these are tied to the state the division is in.
-
-To check the results:
-1. Start a new game with the mod enabled (it can be non-Ironman) and play a few in-game weeks with some units on the map.
-2. Run `python3 build/hoi4/import_log.py "<...>/logs/game.log"`. It prints what the probe captured.
-3. Also check `logs/error.log` for lines mentioning `ww2dbd`.
-4. Send me both outputs.
-
-v0.2 will then log every division whose identity and location can be printed, which drives the division markers.
+N moves in steps (1, 2, 3, 4, 5, 6, 8, 10, 14, 20, 30, 40), so the count is a lower bound. This gives where each country's forces are, by state and week. It does **not** give individual named divisions or their paths. Those only exist in a plain-text save (see below).
 
 ## Save files
 
@@ -68,4 +57,12 @@ This writes `data/hoi4_campaign.json`, which contains:
 - combats;
 - the probe summary.
 
-Placing HOI4 states on the map also needs `map/definition.csv`, `map/provinces.bmp` and `history/states/` from your HOI4 install. That step comes next, together with the world map.
+## Placing states on the map
+
+HOI4 states have to be located on the real-world map. Run this once on your PC; it reads your game folder and writes a small file with only ids and pixel positions:
+
+```
+node build/hoi4/extract_states.mjs "C:\Program Files (x86)\Steam\steamapps\common\Hearts of Iron IV"
+```
+
+It creates `data/hoi4_states.json` (a few hundred KB). The map viewer for campaigns uses it to put states, divisions and fronts in the right places.
