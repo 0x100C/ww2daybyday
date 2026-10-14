@@ -13,7 +13,10 @@ and writes a campaign file (default data/hoi4_campaign.json) with:
   snapshots   monthly full state-control snapshots {t: {state: tag}}
   stats       weekly strength per country at war
   combats     battles won/lost per general
-  divisions   weekly [state, country, divisions (lower bound), armor divisions]
+  divisions   every 3 days: per country per state, lower bounds of divisions, armour divisions, men
+  casualties  weekly total casualties (thousands) and war support per country
+  leaders     weekly per general: units, in combat, offensive/defensive, types, battle plans
+  factions    monthly alliance pairs and faction leaders; capitals per country
   probe       what the division-scope probe could print (guides logger v0.2)
 
 Dates are converted to days since the first logged date, like the
@@ -102,6 +105,7 @@ def main():
     countries, events, control, stats, combats = {}, [], [], defaultdict(list), []
     snapshots = defaultdict(dict)
     div_rows = {}
+    casualties, leaders, capitals, fac_leaders, allies = defaultdict(list), [], {}, {}, {}
     probe = Counter()
     probe_samples = []
     for d, kind, f in rows:
@@ -110,11 +114,21 @@ def main():
         pos, kw = kv(f)
         if kind == "COUNTRY" and pos:
             countries[pos[0]] = {"name": pos[1] if len(pos) > 1 else pos[0], "flag": pos[2] if len(pos) > 2 else pos[0]}
-        elif kind in ("DIV", "DIVARM") and len(pos) >= 3:
-            # lower bound of divisions of one country in one state (weekly)
+        elif kind in ("DIV", "DIVARM", "MAN") and len(pos) >= 3:
+            # lower bounds for one country in one state: divisions, armour divisions, men (every 3 days)
             key = (t, pos[0], pos[1])
-            row = div_rows.setdefault(key, {"t": t, "state": pos[0], "tag": pos[1], "n": 0, "armor": 0})
-            row["n" if kind == "DIV" else "armor"] = int(float(pos[2]))
+            row = div_rows.setdefault(key, {"t": t, "state": pos[0], "tag": pos[1], "n": 0, "armor": 0, "men": 0})
+            row[{"DIV": "n", "DIVARM": "armor", "MAN": "men"}[kind]] = int(float(pos[2]))
+        elif kind == "CASUALTIES" and pos:
+            casualties[pos[0]].append({"t": t, **{k: num(v) for k, v in kw.items()}})
+        elif kind == "LEADER" and len(pos) >= 2:
+            leaders.append({"t": t, "tag": pos[0], "name": pos[1], **{k: num(v) for k, v in kw.items()}})
+        elif kind == "CAPITAL" and len(pos) >= 2:
+            capitals[pos[0]] = pos[1]
+        elif kind == "FACTION_LEADER" and pos:
+            fac_leaders.setdefault(t, []).append(pos[0])
+        elif kind == "ALLY" and len(pos) >= 2:
+            allies.setdefault(t, {}).setdefault(pos[0], []).append(pos[1])
         elif kind == "STATE_CONTROL" and len(pos) >= 2:
             snapshots[t][pos[0]] = pos[1]
         elif kind == "CONTROL" and len(pos) >= 3:
@@ -145,13 +159,17 @@ def main():
         "stats": stats,
         "combats": combats,
         "divisions": sorted(div_rows.values(), key=lambda r: (r["t"], r["tag"], r["state"])),
+        "casualties": casualties,
+        "leaders": leaders,
+        "capitals": capitals,
+        "factions": [{"t": t, "leaders": fac_leaders.get(t, []), "allies": a} for t, a in sorted(allies.items())],
         "probe": {"counts": dict(probe), "samples": probe_samples},
     }
     with open(out, "w", encoding="utf-8") as f:
         json.dump(camp, f, ensure_ascii=False, indent=0)
     print(f"{len(rows)} log lines, {len(countries)} countries, {len(events)} events, {len(control)} control changes, "
           f"{len(camp['snapshots'])} snapshots, {sum(len(v) for v in stats.values())} stat rows, "
-          f"{len(combats)} combats, {len(div_rows)} division rows -> {out}")
+          f"{len(combats)} combats, {len(div_rows)} force rows, {len(leaders)} general rows, {len(allies)} faction snapshots -> {out}")
     if probe:
         print("division probe:", dict(probe))
         for s in probe_samples[:5]:

@@ -1,0 +1,111 @@
+# WW2 Day by Day - campaign logger v0.2 (forces)
+#
+# NEW in v0.2 and NOT yet tested in the game: divisions per state per country,
+# army manpower per state, casualties, generals' engagement and battle-plan counts,
+# faction membership snapshots, capitals. Everything here uses only the triggers,
+# scopes and variables listed on the HOI4 modding wiki:
+#   divisions_in_state, army_manpower_in_state (country triggers, state = <scope>)
+#   casualties_k, has_war_support (country variables)
+#   every_army_leader and the unit-leader variables num_units, num_units_in_combat,
+#   num_units_offensive_combats, num_units_defensive_combats, num_armored, num_infantry,
+#   num_motorized, num_battle_plans, num_orders_groups
+#   every_allied_country, is_faction_leader, capital
+# If a line is wrong the game writes it to logs/error.log; the core file keeps working.
+
+on_actions = {
+
+	# every 3 days: where each country's forces are, state by state (human player only)
+	on_daily = {
+		effect = {
+			if = {
+				limit = { is_ai = no }
+				set_temp_variable = { ww2dbd_d = global.num_days }
+				modulo_temp_variable = { ww2dbd_d = 3 }
+				if = {
+					limit = { check_variable = { ww2dbd_d = 0 } }
+					every_state = {
+						limit = { any_state_division = { always = yes } }
+						every_country = {
+							limit = { has_war = yes }
+							if = {
+								limit = { divisions_in_state = { state = PREV size > 0.5 } }
+								if = { limit = { divisions_in_state = { state = PREV size > 39.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|40" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 29.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|30" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 19.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|20" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 13.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|14" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 9.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|10" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 7.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|8" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 5.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|6" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 4.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|5" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 3.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|4" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 2.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|3" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 1.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|2" }
+								else_if = { limit = { divisions_in_state = { state = PREV size > 0.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|1" }
+								if = {
+									limit = { divisions_in_state = { state = PREV size > 0.5 type = armor } }
+									if = { limit = { divisions_in_state = { state = PREV size > 19.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|20" }
+									else_if = { limit = { divisions_in_state = { state = PREV size > 11.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|12" }
+									else_if = { limit = { divisions_in_state = { state = PREV size > 7.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|8" }
+									else_if = { limit = { divisions_in_state = { state = PREV size > 5.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|6" }
+									else_if = { limit = { divisions_in_state = { state = PREV size > 3.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|4" }
+									else_if = { limit = { divisions_in_state = { state = PREV size > 2.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|3" }
+									else_if = { limit = { divisions_in_state = { state = PREV size > 1.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|2" }
+									else_if = { limit = { divisions_in_state = { state = PREV size > 0.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|1" }
+								}
+								if = { limit = { army_manpower_in_state = { state = PREV amount > 600000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|600000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 400000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|400000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 250000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|250000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 150000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|150000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 100000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|100000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 60000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|60000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 40000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|40000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 25000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|25000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 15000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|15000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 8000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|8000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 4000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|4000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 1500 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|1500" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 500 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|500" }
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	# weekly: casualties, war support, and every general's engagement
+	on_weekly = {
+		effect = {
+			if = {
+				limit = { is_ai = no }
+				every_country = {
+					limit = { has_war = yes }
+					log = "WW2DBD|[GetDate]|CASUALTIES|[THIS.GetTag]|casualties_k=[?THIS.casualties_k]|war_support=[?THIS.has_war_support]"
+					every_army_leader = {
+						log = "WW2DBD|[GetDate]|LEADER|[PREV.GetTag]|[THIS.GetName]|units=[?THIS.num_units]|combat=[?THIS.num_units_in_combat]|off=[?THIS.num_units_offensive_combats]|def=[?THIS.num_units_defensive_combats]|armor=[?THIS.num_armored]|inf=[?THIS.num_infantry]|mot=[?THIS.num_motorized]|plans=[?THIS.num_battle_plans]|orders=[?THIS.num_orders_groups]"
+					}
+				}
+			}
+		}
+	}
+
+	# monthly: countries (also for saves loaded after start), capitals, faction membership
+	on_monthly = {
+		effect = {
+			if = {
+				limit = { is_ai = no }
+				every_country = {
+					log = "WW2DBD|[GetDate]|COUNTRY|[THIS.GetTag]|[THIS.GetName]|[THIS.GetFlag]"
+					log = "WW2DBD|[GetDate]|CAPITAL|[THIS.GetTag]|[?THIS.capital]"
+					if = {
+						limit = { is_in_faction = yes }
+						if = { limit = { is_faction_leader = yes } log = "WW2DBD|[GetDate]|FACTION_LEADER|[THIS.GetTag]" }
+						every_allied_country = {
+							log = "WW2DBD|[GetDate]|ALLY|[PREV.GetTag]|[THIS.GetTag]"
+						}
+					}
+				}
+			}
+		}
+	}
+}

@@ -1,14 +1,15 @@
-# WW2 Day by Day - campaign logger v0.2
+# WW2 Day by Day - campaign logger v0.2 (core)
 #
 # Writes one line per event to Documents/Paradox Interactive/Hearts of Iron IV/logs/game.log
-# Format:  WW2DBD|<game date YYYY.MM.DD.HH>|<KIND>|field|field...
+#   WW2DBD|<game date YYYY.MM.DD.HH>|<KIND>|field|field...
+# This file holds the hooks that were proven in the v0.1 test game. The newer, riskier
+# logging (divisions, generals, casualties, factions, capitals) is in
+# ww2dbd_logger_forces.txt so a mistake there cannot stop this file working.
 # Only hooks, scopes and localisation functions documented on the HOI4 modding wiki
-# (On actions, Scopes, Localisation pages, snapshot 2026-09) are used.
-# The mod only reads and logs; it changes nothing in the game.
+# are used. The mod only reads and logs; it changes nothing in the game.
 
 on_actions = {
 
-	# ---------------------------------------------------------------- start / snapshots
 	on_startup = {
 		effect = {
 			log = "WW2DBD|[GetDate]|START|v0.2"
@@ -25,10 +26,7 @@ on_actions = {
 	# once a day, for the human player only (on_daily fires for every country)
 	on_daily = {
 		effect = {
-			if = {
-				limit = { is_ai = no }
-				log = "WW2DBD|[GetDate]|DAY"
-			}
+			if = { limit = { is_ai = no } log = "WW2DBD|[GetDate]|DAY" }
 		}
 	}
 
@@ -40,40 +38,6 @@ on_actions = {
 				every_country = {
 					limit = { has_war = yes }
 					log = "WW2DBD|[GetDate]|STATS|[THIS.GetTag]|armies=[?THIS.num_armies]|battalions=[?THIS.num_battalions]|deployed_k=[?THIS.deployed_army_manpower_k]|manpower_k=[?THIS.manpower_k]|states=[?THIS.num_controlled_states]|surrender=[?THIS.surrender_progress]"
-				}
-				# --- divisions per state per country (v0.2): lower bound on the count, from the wiki's
-				# country trigger divisions_in_state. DIV = all divisions, DIVARM = armor-majority divisions.
-				every_state = {
-					limit = { any_state_division = { always = yes } }
-					every_country = {
-						limit = { has_war = yes }
-						if = {
-							limit = { divisions_in_state = { state = PREV size > 0.5 } }
-							if = { limit = { divisions_in_state = { state = PREV size > 39.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|40" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 29.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|30" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 19.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|20" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 13.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|14" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 9.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|10" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 7.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|8" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 5.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|6" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 4.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|5" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 3.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|4" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 2.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|3" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 1.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|2" }
-							else_if = { limit = { divisions_in_state = { state = PREV size > 0.5 } } log = "WW2DBD|[GetDate]|DIV|[PREV.GetID]|[THIS.GetTag]|1" }
-							if = {
-								limit = { divisions_in_state = { state = PREV size > 0.5 type = armor } }
-								if = { limit = { divisions_in_state = { state = PREV size > 19.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|20" }
-								else_if = { limit = { divisions_in_state = { state = PREV size > 11.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|12" }
-								else_if = { limit = { divisions_in_state = { state = PREV size > 7.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|8" }
-								else_if = { limit = { divisions_in_state = { state = PREV size > 5.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|6" }
-								else_if = { limit = { divisions_in_state = { state = PREV size > 3.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|4" }
-								else_if = { limit = { divisions_in_state = { state = PREV size > 2.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|3" }
-								else_if = { limit = { divisions_in_state = { state = PREV size > 1.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|2" }
-								else_if = { limit = { divisions_in_state = { state = PREV size > 0.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|1" }
-							}
-						}
-					}
 				}
 			}
 		}
@@ -91,7 +55,7 @@ on_actions = {
 		}
 	}
 
-	# ---------------------------------------------------------------- territory
+	# ---------------------------------------------------------------- territory and invasions
 	# ROOT new controller, FROM old controller, FROM.FROM the state
 	on_state_control_changed = {
 		effect = {
@@ -104,6 +68,9 @@ on_actions = {
 	}
 	on_paradrop = {
 		effect = { log = "WW2DBD|[GetDate]|PARADROP|[ROOT.GetTag]|to=[THIS.GetID]|from=[FROM.GetID]" }
+	}
+	on_units_paradropped_in_state = {   # ROOT is the state dropped into, FROM the dropping country
+		effect = { log = "WW2DBD|[GetDate]|PARADROP_STATE|[FROM.GetTag]|to=[ROOT.GetID]" }
 	}
 
 	# ---------------------------------------------------------------- wars and peace
@@ -145,6 +112,12 @@ on_actions = {
 	}
 	on_civil_war_end = {
 		effect = { log = "WW2DBD|[GetDate]|CIVIL_WAR_END|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_subject_annexed = {         # ROOT subject, FROM overlord
+		effect = { log = "WW2DBD|[GetDate]|SUBJECT_ANNEXED|[ROOT.GetTag]|[FROM.GetTag]" }
+	}
+	on_government_exiled = {
+		effect = { log = "WW2DBD|[GetDate]|GOV_EXILED|[ROOT.GetTag]|[FROM.GetTag]" }
 	}
 
 	# ---------------------------------------------------------------- factions and politics
