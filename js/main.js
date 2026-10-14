@@ -413,17 +413,17 @@ async function main() {
       let ang = L(3);
       ang = ((ang + 90) % 180 + 180) % 180 - 90;
       const rad = ang * Math.PI / 180;
-      let nx = L(4), ny = L(5);
-      const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
-      const off = 30;
-      const sides = [[tr.a, L(6), 1], [tr.b, L(7), -1]];
-      for (const [id, men, sg] of sides) {
+      const A = rr.toScreen(mercX(L(4)), millerY(L(5))), B = rr.toScreen(mercX(L(6)), millerY(L(7)));
+      const sep = Math.hypot(A[0] - B[0], A[1] - B[1]) / rr.dpr;
+      const size = Math.max(11, Math.min(22, sep * 0.62));
+      const sides = [[tr.a, L(8), A], [tr.b, L(9), B]];
+      for (const [id, men, P] of sides) {
         if (men < 500) continue;
         c.save();
         c.globalAlpha = Math.max(0, fade);
-        c.translate(x + nx * off * sg, y + ny * off * sg);
+        c.translate(P[0] / rr.dpr, P[1] / rr.dpr);
         c.rotate(rad);
-        c.font = '700 22px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif';
+        c.font = `700 ${size.toFixed(1)}px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif`;
         c.textAlign = 'center'; c.textBaseline = 'middle';
         c.shadowColor = side(id); c.shadowBlur = 7;
         c.fillStyle = '#ffffff';
