@@ -29,7 +29,7 @@ import os
 import re
 import sys
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 LINE = re.compile(r"WW2DBD\|([^\n\r]*)")
 
@@ -39,7 +39,9 @@ def parse_date(s):
     p = [int(x) for x in s.split(".")]
     while len(p) < 4:
         p.append(0)
-    return datetime(p[0], p[1], p[2], p[3])
+    # HOI4 stamps the end of a day as hour 24 (e.g. 1939.8.15.24): that is midnight of the next day
+    extra = timedelta(days=1) if p[3] >= 24 else timedelta(0)
+    return datetime(p[0], p[1], p[2], 0 if p[3] >= 24 else p[3]) + extra
 
 
 def kv(fields):
@@ -114,17 +116,21 @@ def main():
         pos, kw = kv(f)
         if kind == "COUNTRY" and pos:
             countries[pos[0]] = {"name": pos[1] if len(pos) > 1 else pos[0], "flag": pos[2] if len(pos) > 2 else pos[0]}
-        elif kind in ("DIV", "DIVARM", "MAN") and len(pos) >= 3:
+        elif kind in ("DIV", "DIVARM", "MAN", "MEN") and len(pos) >= 3:
             # lower bounds for one country in one state: divisions, armour divisions, men (every 3 days)
             key = (t, pos[0], pos[1])
             row = div_rows.setdefault(key, {"t": t, "state": pos[0], "tag": pos[1], "n": 0, "armor": 0, "men": 0})
-            row[{"DIV": "n", "DIVARM": "armor", "MAN": "men"}[kind]] = int(float(pos[2]))
+            row[{"DIV": "n", "DIVARM": "armor", "MAN": "men", "MEN": "men"}[kind]] = int(float(pos[2]))
         elif kind == "CASUALTIES" and pos:
             casualties[pos[0]].append({"t": t, **{k: num(v) for k, v in kw.items()}})
         elif kind == "LEADER" and len(pos) >= 2:
             leaders.append({"t": t, "tag": pos[0], "name": pos[1], **{k: num(v) for k, v in kw.items()}})
         elif kind == "CAPITAL" and len(pos) >= 2:
-            capitals[pos[0]] = pos[1]
+            try:
+                if 0 < float(pos[1]) < 100000:      # v0.2 printed a garbled number; ignore those
+                    capitals[pos[0]] = pos[1]
+            except ValueError:
+                pass
         elif kind == "FACTION_LEADER" and pos:
             fac_leaders.setdefault(t, []).append(pos[0])
         elif kind == "ALLY" and len(pos) >= 2:

@@ -1,4 +1,7 @@
-# WW2 Day by Day - campaign logger v0.2 (forces)
+# WW2 Day by Day - campaign logger v0.2.1 (forces)
+# v0.2.1: tested in a real game (Aug-Dec 1939): DIV, DIVARM, MAN->MEN, CASUALTIES, LEADER, ALLY,
+# FACTION_LEADER all print correctly. CAPITAL printed a garbled number in v0.2 and is retried
+# with the documented [TAG.capital.GetID] pattern (untested).
 #
 # NEW in v0.2 and NOT yet tested in the game: divisions per state per country,
 # army manpower per state, casualties, generals' engagement and battle-plan counts,
@@ -52,19 +55,19 @@ on_actions = {
 									else_if = { limit = { divisions_in_state = { state = PREV size > 1.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|2" }
 									else_if = { limit = { divisions_in_state = { state = PREV size > 0.5 type = armor } } log = "WW2DBD|[GetDate]|DIVARM|[PREV.GetID]|[THIS.GetTag]|1" }
 								}
-								if = { limit = { army_manpower_in_state = { state = PREV amount > 600000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|600000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 400000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|400000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 250000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|250000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 150000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|150000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 100000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|100000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 60000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|60000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 40000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|40000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 25000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|25000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 15000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|15000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 8000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|8000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 4000 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|4000" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 1500 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|1500" }
-								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 500 } } log = "WW2DBD|[GetDate]|MAN|[PREV.GetID]|[THIS.GetTag]|500" }
+								if = { limit = { army_manpower_in_state = { state = PREV amount > 600000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|600000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 400000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|400000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 250000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|250000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 150000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|150000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 100000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|100000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 60000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|60000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 40000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|40000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 25000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|25000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 15000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|15000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 8000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|8000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 4000 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|4000" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 1500 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|1500" }
+								else_if = { limit = { army_manpower_in_state = { state = PREV amount > 500 } } log = "WW2DBD|[GetDate]|MEN|[PREV.GetID]|[THIS.GetTag]|500" }
 							}
 						}
 					}
@@ -96,7 +99,7 @@ on_actions = {
 				limit = { is_ai = no }
 				every_country = {
 					log = "WW2DBD|[GetDate]|COUNTRY|[THIS.GetTag]|[THIS.GetName]|[THIS.GetFlag]"
-					log = "WW2DBD|[GetDate]|CAPITAL|[THIS.GetTag]|[?THIS.capital]"
+					log = "WW2DBD|[GetDate]|CAPITAL|[THIS.GetTag]|[THIS.capital.GetID]|[THIS.capital.GetName]"
 					if = {
 						limit = { is_in_faction = yes }
 						if = { limit = { is_faction_leader = yes } log = "WW2DBD|[GetDate]|FACTION_LEADER|[THIS.GetTag]" }

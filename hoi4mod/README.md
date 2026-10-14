@@ -1,4 +1,4 @@
-# WW2 Day by Day – HOI4 campaign logger (v0.1)
+# WW2 Day by Day – HOI4 campaign logger (v0.2.1)
 
 A read-only Hearts of Iron IV mod. It writes campaign events to `game.log`, so a campaign can be replayed on the WW2 Day by Day map. It changes nothing in the game.
 
@@ -16,7 +16,7 @@ Like any mod, it changes the game checksum, so achievements are disabled. It wor
 Each line in `logs/game.log` has the form `WW2DBD|<date>|<KIND>|...`. The mod is split into two files so a mistake in the new logging cannot stop the proven part:
 
 - `ww2dbd_logger_core.txt`: everything v0.1 logged, which worked in a real test game (events, territory, wars, factions, combat, weekly stats).
-- `ww2dbd_logger_forces.txt`: **new and not yet tested in the game** (see below).
+- `ww2dbd_logger_forces.txt`: new in v0.2. **Tested in a real game (Aug–Dec 1939):** divisions, armour, men, casualties, generals, allies and faction leaders all log correctly. The capital line printed garbage and is retried in v0.2.1.
 
 ### Core
 
@@ -33,11 +33,11 @@ Each line in `logs/game.log` has the form `WW2DBD|<date>|<KIND>|...`. The mod is
 | `STATS` | Weekly, every country at war | divisions, battalions, deployed manpower (k), manpower (k), states controlled, surrender progress |
 | `NUKE` | Nuclear strike | launcher, state |
 
-### Forces (new in v0.2)
+### Forces (v0.2)
 
 | Kind | When | What it gives |
 |---|---|---|
-| `DIV`, `DIVARM`, `MAN` | Every 3 days | For each country at war in each state where it has divisions: at least N divisions, at least N armour divisions, at least N men. N moves in steps, so these are lower bounds. This is the position and strength of each army, state by state. |
+| `DIV`, `DIVARM`, `MEN` | Every 3 days | For each country at war in each state where it has divisions: at least N divisions, at least N armour divisions, at least N men. N moves in steps, so these are lower bounds. This is the position and strength of each army, state by state. |
 | `CASUALTIES` | Weekly | Each country's total casualties (thousands) and war support. |
 | `LEADER` | Weekly | Each general by name: units led, units in combat, offensive and defensive fights, armour/infantry/motorised units, **number of battle plans** and order groups. |
 | `COUNTRY`, `CAPITAL` | Monthly | Country names and flags again (so campaigns loaded from a save still work), and capital state. |
