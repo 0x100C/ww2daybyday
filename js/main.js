@@ -385,6 +385,55 @@ async function main() {
       app.markers.push({ ...g, rad });
     }
   }
+
+  // ---------------------------------------------------------------- front totals (campaign replays)
+  // Each front is one track built by the compiler: its centre, direction, which way each side lies, and the
+  // troops (men, a lower bound from the log) each side keeps near it. Labels sit on both sides of the front.
+  function drawFronts(c, rr, t) {
+    const FR = app.campaign && app.campaign.fronts;
+    if (!FR || !$('opt-numbers').checked) return;
+    const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const side = (id) => {
+      const k = app.pal ? [app.pal[id * 4], app.pal[id * 4 + 1], app.pal[id * 4 + 2]] : [60, 60, 60];
+      return `rgba(${k[0] * 0.55 | 0},${k[1] * 0.55 | 0},${k[2] * 0.55 | 0},0.95)`;
+    };
+    for (const tr of FR) {
+      const a = tr.s;
+      if (t < a[0][0] - 1.5 || t > a[a.length - 1][0] + 1.5) continue;
+      const tt = Math.min(a[a.length - 1][0], Math.max(a[0][0], t));
+      let i = 0;
+      while (i < a.length - 2 && a[i + 1][0] < tt) i++;
+      const p = a[i], q = a[i + 1] || p;
+      const f = q[0] > p[0] ? smooth01((tt - p[0]) / (q[0] - p[0])) : 0;
+      const L = (k) => p[k] + (q[k] - p[k]) * f;
+      const fade = Math.min(1, (t - a[0][0] + 1.5) / 1.5, (a[a.length - 1][0] + 1.5 - t) / 1.5);
+      const [sx, sy] = rr.toScreen(mercX(L(1)), millerY(L(2)));
+      const x = sx / rr.dpr, y = sy / rr.dpr;
+      if (x < -80 || y < -80 || x > overlay.clientWidth + 80 || y > overlay.clientHeight + 80) continue;
+      let ang = L(3);
+      ang = ((ang + 90) % 180 + 180) % 180 - 90;
+      const rad = ang * Math.PI / 180;
+      let nx = L(4), ny = L(5);
+      const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+      const off = 30;
+      const sides = [[tr.a, L(6), 1], [tr.b, L(7), -1]];
+      for (const [id, men, sg] of sides) {
+        if (men < 500) continue;
+        c.save();
+        c.globalAlpha = Math.max(0, fade);
+        c.translate(x + nx * off * sg, y + ny * off * sg);
+        c.rotate(rad);
+        c.font = '700 22px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.shadowColor = side(id); c.shadowBlur = 7;
+        c.fillStyle = '#ffffff';
+        c.fillText(fmt(men), 0, 0);
+        c.shadowBlur = 3;
+        c.fillText(fmt(men), 0, 0);
+        c.restore();
+      }
+    }
+  }
   function showTip(e) {
     const tip = $('tip');
     if (!app.markers || !app.markers.length || !$('opt-divisions').checked) { tip.hidden = true; return; }
@@ -409,7 +458,8 @@ async function main() {
   }
   if (campaign) {
     $('lbl-divisions').hidden = false;
-    $('opt-numbers').parentElement.hidden = true;           // historical front strengths do not exist for a campaign
+    $('opt-numbers').parentElement.lastChild.textContent = ' front troops';
+    $('opt-divisions').checked = false;                     // front totals by default; per-state markers on request
     canvas.addEventListener('pointermove', (e) => { if (!app.dragging) showTip(e); });
     canvas.addEventListener('pointerleave', () => { $('tip').hidden = true; });
   }
@@ -443,7 +493,7 @@ async function main() {
       c.globalAlpha = 1;
     }
     if (!campaign && $('opt-numbers').checked) drawStrengths(c, rr, t);
-    if (campaign) drawForces(c, rr, t);
+    if (campaign) { drawFronts(c, rr, t); drawForces(c, rr, t); }
     if (!$('opt-labels').checked) return;
     // encirclement markers
     for (const L of meta.labels) {

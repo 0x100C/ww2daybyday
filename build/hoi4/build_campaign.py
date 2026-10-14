@@ -85,6 +85,38 @@ def px_to_lonlat(cal, x, y):
     return cal["lon"][0] * x + cal["lon"][1], float(inv_merc(cal["mlat"][0] * y + cal["mlat"][1]))
 
 
+def smooth_states(arr, scale, hx, hy, sigma=1.2, floor=0.35):
+    """Round the 4x4-pixel stair steps of the state grid. Each state's indicator is blurred and every
+    map cell takes the state with the strongest blurred value (so borders between states stay shared
+    and gap-free, and coasts barely move). Cells no state reaches are left 0 and filled afterwards."""
+    h, w = arr.shape
+    H, W = len(hy), len(hx)
+    gxf = hx / scale - 0.5
+    gyf = hy / scale - 0.5
+    best = np.full((H, W), floor, np.float32)
+    out = np.zeros((H, W), np.uint16)
+    objs = ndimage.find_objects(arr)
+    for k, sl in enumerate(objs):
+        if sl is None:
+            continue
+        sid = k + 1
+        y0, y1 = max(0, sl[0].start - 5), min(h, sl[0].stop + 5)
+        x0, x1 = max(0, sl[1].start - 5), min(w, sl[1].stop + 5)
+        sm = ndimage.gaussian_filter((arr[y0:y1, x0:x1] == sid).astype(np.float32), sigma, mode="constant")
+        rows = np.nonzero((gyf >= y0) & (gyf <= y1 - 1))[0]
+        cols = np.nonzero((gxf >= x0) & (gxf <= x1 - 1))[0]
+        if rows.size == 0 or cols.size == 0:
+            continue
+        r0, r1, c0, c1 = rows[0], rows[-1] + 1, cols[0], cols[-1] + 1
+        yy, xx = np.meshgrid(gyf[r0:r1] - y0, gxf[c0:c1] - x0, indexing="ij")
+        v = ndimage.map_coordinates(sm, [yy, xx], order=1, mode="nearest")
+        sub = best[r0:r1, c0:c1]
+        m = v > sub
+        best[r0:r1, c0:c1] = np.where(m, v, sub)
+        out[r0:r1, c0:c1] = np.where(m, sid, out[r0:r1, c0:c1])
+    return out
+
+
 def cell_states(st, cal, land):
     """State id of every map cell (uint16 H x W)."""
     H, W = land.shape
@@ -97,12 +129,9 @@ def cell_states(st, cal, land):
     hy = (merc(lat) - cal["mlat"][1]) / cal["mlat"][0]           # HOI4 pixel y per row
     if "grid" in st:
         g = st["grid"]
-        arr = np.frombuffer(base64.b64decode(g["data"]), dtype="<u2").reshape(g["h"], g["w"])
-        gx = np.floor(hx / g["scale"]).astype(int); gy = np.floor(hy / g["scale"]).astype(int)
-        okx = (gx >= 0) & (gx < g["w"]); oky = (gy >= 0) & (gy < g["h"])
-        out = arr[np.clip(gy, 0, g["h"] - 1)[:, None], np.clip(gx, 0, g["w"] - 1)[None, :]]
-        out = np.where(oky[:, None] & okx[None, :], out, 0).astype(np.uint16)
-        print("state shapes: from the grid in the states file")
+        arr = np.frombuffer(base64.b64decode(g["data"]), dtype="<u2").reshape(g["h"], g["w"]).astype(np.int32)
+        out = smooth_states(arr, g["scale"], hx, hy)
+        print("state shapes: from the grid in the states file, edges smoothed")
     else:
         from scipy.spatial import cKDTree
         ids = np.array([int(k) for k in st["states"]])
@@ -128,6 +157,145 @@ def iso(day0, t):
     """ISO date string of the day t days after the epoch."""
     from datetime import timedelta
     return (day0 + timedelta(days=int(math.floor(t)))).strftime("%Y-%m-%d")
+
+
+def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags):
+    """Frontline tracks. At every force snapshot: find the boundary cells between countries that are at war,
+    group them into connected fronts, sum the troops each side keeps near that front, and follow each front
+    from snapshot to snapshot. Troop figures are the log's lower bounds (men), not a count of the real army."""
+    DS = 4
+    tag_of = {v: k for k, v in uid.items()}
+    gx0, gy0 = None, None
+    def lonlat(cx, cy):
+        return geo.grid_to_lonlat((cx * DS + DS / 2) * geo.GRID_W / Wd, (cy * DS + DS / 2) * geo.GRID_H / H)
+    war_list = [(uid[a], uid[b], w0, w1) for a, b, w0, w1 in wars]
+    def at_war(x, y, t):
+        for a, b, t0, t1 in war_list:
+            if ((a == x and b == y) or (a == y and b == x)) and t >= t0 and (t1 is None or t < t1):
+                return True
+        return False
+    sid_ll = {int(k): v for k, v in spos.items()}
+    sids = np.array(sorted(sid_ll)); sll = np.array([sid_ll[i] for i in sids])
+    sids_idx = {int(i): k for k, i in enumerate(sids)}
+    tracks, open_tr = [], []
+    flat_ctl = base_ctl.ravel().copy()
+    adv_i = 0
+    adv_sorted = sorted(range(len(adv_rec)), key=lambda i: adv_rec[i][2].min())
+    H4, W4 = H // DS, Wd // DS
+    for fs in forces:
+        t = fs["t"]
+        ctl = base_ctl.copy()
+        for idx, new, arr in adv_rec:
+            m = arr <= t
+            if m.any():
+                ctl.ravel()[idx[m]] = new
+        d = ctl[DS // 2::DS, DS // 2::DS][:H4, :W4]
+        pts = {}
+        for dy, dx in ((0, 1), (1, 0)):
+            a = d[:H4 - dy, :W4 - dx]; b = d[dy:, dx:]
+            diff = (a != b) & (a > 0) & (b > 0)
+            ys, xs = np.nonzero(diff)
+            for y, x in zip(ys, xs):
+                u, v = int(a[y, x]), int(b[y, x])
+                if u > v: u, v = v, u
+                if at_war(u, v, t):
+                    pts.setdefault((u, v), []).append((x + dx / 2, y + dy / 2))
+        cur = []
+        for (u, v), P in pts.items():
+            P = np.array(P)
+            m = np.zeros((H4, W4), bool); m[P[:, 1].astype(int), P[:, 0].astype(int)] = True
+            lab, n = ndimage.label(ndimage.binary_dilation(m, iterations=7), np.ones((3, 3)))
+            lp = lab[P[:, 1].astype(int), P[:, 0].astype(int)]
+            for c in range(1, n + 1):
+                Q = P[lp == c]
+                if len(Q) < 10:
+                    continue
+                cen = Q.mean(0)
+                w, vec = np.linalg.eigh(np.cov(Q.T) if len(Q) > 2 else np.eye(2))
+                ax = vec[:, 1]
+                ang = math.degrees(math.atan2(ax[1], ax[0]))
+                if ang > 90: ang -= 180
+                if ang <= -90: ang += 180
+                # direction from side v towards side u, using where each country holds ground near the front
+                x0, x1 = int(max(0, Q[:, 0].min() - 8)), int(min(W4, Q[:, 0].max() + 9))
+                y0, y1 = int(max(0, Q[:, 1].min() - 8)), int(min(H4, Q[:, 1].max() + 9))
+                sub = d[y0:y1, x0:x1]
+                cm = np.zeros(sub.shape, bool)
+                qx = (Q[:, 0] - x0).astype(int).clip(0, sub.shape[1] - 1); qy = (Q[:, 1] - y0).astype(int).clip(0, sub.shape[0] - 1)
+                cm[qy, qx] = True
+                near = ndimage.binary_dilation(cm, iterations=10)
+                yu, xu = np.nonzero(near & (sub == u)); yv, xv = np.nonzero(near & (sub == v))
+                if len(xu) == 0 or len(xv) == 0:
+                    continue
+                nv = np.array([xu.mean() - xv.mean(), yu.mean() - yv.mean()])
+                nn = np.hypot(*nv)
+                if nn < 1e-6:
+                    continue
+                nv /= nn
+                cur.append({"u": u, "v": v, "cen": cen, "ang": ang, "n": nv, "pts": Q})
+        # troops: each division group goes to the nearest front where its country is on one of the sides
+        sums = [[0, 0, 0, 0] for _ in cur]                        # men u, men v, divisions u, divisions v
+        if cur:
+            fll = []
+            for f in cur:
+                sub = f["pts"][:: max(1, len(f["pts"]) // 40)]
+                fll.append(np.array([lonlat(x, y) for x, y in sub]))
+            for row in fs["r"]:
+                tag_id, sid, n, arm, men = row
+                if sid not in sids_idx:
+                    continue
+                lon, lat = sll[sids_idx[sid]]
+                best, bi, side = 1e9, -1, 0
+                for i, f in enumerate(cur):
+                    if tag_id == f["u"] or (tag_id != f["v"] and at_war(tag_id, f["v"], t) and not at_war(tag_id, f["u"], t)):
+                        sd = 0
+                    elif tag_id == f["v"] or (at_war(tag_id, f["u"], t) and not at_war(tag_id, f["v"], t)):
+                        sd = 1
+                    else:
+                        continue
+                    dk = np.min(np.hypot((fll[i][:, 0] - lon) * math.cos(math.radians(lat)), fll[i][:, 1] - lat)) * 111.0
+                    if dk < best:
+                        best, bi, side = dk, i, sd
+                if bi >= 0 and best <= 320:
+                    sums[bi][side] += men; sums[bi][2 + side] += n
+        # follow fronts from the previous snapshot
+        new_open = []
+        used = set()
+        for f, sm in zip(cur, sums):
+            lon, lat = lonlat(*f["cen"])
+            best, bt = 1e9, None
+            for tr in open_tr:
+                if id(tr) in used or (tr["u"], tr["v"]) != (f["u"], f["v"]) or t - tr["s"][-1][0] > 4.0:
+                    continue
+                dk = math.hypot((tr["s"][-1][1] - lon) * math.cos(math.radians(lat)), tr["s"][-1][2] - lat) * 111.0
+                if dk < best and dk < 600:
+                    best, bt = dk, tr
+            ang = f["ang"]
+            if bt is not None:
+                pa = bt["s"][-1][3]
+                while ang - pa > 90: ang -= 180
+                while ang - pa < -90: ang += 180
+                used.add(id(bt))
+            else:
+                bt = {"u": f["u"], "v": f["v"], "s": []}
+                tracks.append(bt)
+            bt["s"].append([t, round(lon, 3), round(lat, 3), round(ang, 1), round(float(f["n"][0]), 3), round(float(f["n"][1]), 3),
+                            int(sm[0]), int(sm[1]), int(sm[2]), int(sm[3])])
+            new_open.append(bt)
+        open_tr = new_open
+    # a front needs a few snapshots to be worth labelling; smooth its troop totals over neighbours
+    out = []
+    for tr in tracks:
+        s = tr["s"]
+        if len(s) < 3:
+            continue
+        for k in (6, 7):
+            vals = [r[k] for r in s]
+            for i, r in enumerate(s):
+                win = vals[max(0, i - 1): i + 2]
+                r[k] = int(sum(win) / len(win))
+        out.append({"a": tr["u"], "b": tr["v"], "s": s})
+    return out
 
 
 def build(log_path, states_path, out_dir):
@@ -233,48 +401,126 @@ def build(log_path, states_path, out_dir):
     def cells_of(sid):
         return np.sort(order[bounds[sid]:bounds[sid + 1]])
 
-    # ---- control changes -> groups
-    ctl = base_ctl.copy()
-    cur = dict(first)                                            # replayed state -> tag
-    water = ~land
-    timeline = [("c", t, r) for t, *r in [(c[0], c[1], c[2], c[3]) for c in camp["control"]]]
-    for s in snaps[1:]:
-        timeline.append(("s", s["t"], s["states"]))
+    # ---- control changes -> smooth advances
+    # 1. which states really change hands, and when (control events + monthly snapshot corrections)
+    cur = dict(first)
+    timeline = [("c", c[0], (c[1], c[2], c[3])) for c in camp["control"]]
+    for sn in snaps[1:]:
+        timeline.append(("s", sn["t"], sn["states"]))
     timeline.sort(key=lambda r: (r[1], 0 if r[0] == "c" else 1))
-    groups = []
-
-    def move(sid, newtag, t, src):
-        sid_i = int(sid)
-        cells = cells_of(sid_i)
-        if cells.size == 0 or newtag not in uid:
-            cur[sid] = newtag
-            return
-        new = uid[newtag]
-        yy, xx = cells // Wd, cells % Wd
-        y0, y1, x0, x1 = max(0, yy.min() - 3), min(H, yy.max() + 4), max(0, xx.min() - 3), min(Wd, xx.max() + 4)
-        mask = np.zeros((y1 - y0, x1 - x0), bool); mask[yy - y0, xx - x0] = True
-        prev = ctl[y0:y1, x0:x1]
-        fr = sweep_fracs(mask, new, prev, water[y0:y1, x0:x1])
-        frac = np.clip(np.round(fr[yy - y0, xx - x0] * 255), 0, 255).astype(np.uint8)
-        tt = T(t)
-        groups.append(Group(0, max(0.0, tt - 1.0), tt, cells.astype(np.int64), np.full(cells.size, new, np.uint8), frac, src))
-        ctl[yy, xx] = new
-        cur[sid] = newtag
-
-    n_ev = n_fix = 0
+    changes = []                                                 # (t, state, new tag, source)
     for kind, t, payload in timeline:
         if kind == "c":
             sid, _frm, to = payload
             if cur.get(sid) != to:
-                move(sid, to, t, "control"); n_ev += 1
+                changes.append((t, sid, to, "control")); cur[sid] = to
         else:
             for sid, tag in payload.items():
                 if cur.get(sid) != tag:
-                    move(sid, tag, t, "snapshot"); n_fix += 1
-    t_end = T(max([e["t"] for e in camp["events"]] + [s["t"] for s in snaps] + [r["t"] for r in camp["divisions"]] + [0.0]))
+                    changes.append((t, sid, tag, "snapshot")); cur[sid] = tag
+    n_fix = sum(1 for c in changes if c[3] == "snapshot")
+
+    # 2. captures by the same country within a few days form ONE advance, so the front flows through
+    #    the states instead of flipping them one at a time
+    GAP, MAXSPAN = 3.0, 25.0
+    clusters = []
+    open_c = {}
+    for ch in sorted(changes, key=lambda c: c[0]):
+        c = open_c.get(ch[2])
+        if c and ch[0] - c["last"] <= GAP and ch[0] - c["first"] <= MAXSPAN:
+            c["ev"].append(ch); c["last"] = ch[0]
+        else:
+            c = {"tag": ch[2], "first": ch[0], "last": ch[0], "ev": [ch]}
+            open_c[ch[2]] = c; clusters.append(c)
+    clusters.sort(key=lambda c: c["first"])
+
+    def pav(y):
+        """isotonic (non-decreasing) fit by pool-adjacent-violators"""
+        y = list(map(float, y)); w = [1.0] * len(y); i = 0
+        while i < len(y) - 1:
+            if y[i] > y[i + 1] + 1e-12:
+                tot = w[i] + w[i + 1]; y[i] = (y[i] * w[i] + y[i + 1] * w[i + 1]) / tot; w[i] = tot
+                del y[i + 1], w[i + 1]
+                i = max(i - 1, 0)
+            else:
+                i += 1
+        return y, w
+
+    from skimage.graph import MCP_Geometric
+    ctl = base_ctl.copy()
+    groups = []
+    adv_rec = []                                                  # (cell index, new owner, arrival day) per advance
+    V_DEFAULT = 20.0                                              # cells of advance per day when the log gives no better rate
+    for cl in clusters:
+        new = uid.get(cl["tag"])
+        evs = [(t, sid) for t, sid, _tag, _src in cl["ev"] if cells_of(int(sid)).size]
+        if new is None or not evs:
+            continue
+        cells_list = [cells_of(int(sid)) for _t, sid in evs]
+        allc = np.concatenate(cells_list)
+        yy, xx = allc // Wd, allc % Wd
+        y0, y1, x0, x1 = max(0, yy.min() - 4), min(H, yy.max() + 5), max(0, xx.min() - 4), min(Wd, xx.max() + 5)
+        shp = (y1 - y0, x1 - x0)
+        mask = np.zeros(shp, bool); mask[yy - y0, xx - x0] = True
+        tev = np.zeros(shp, np.float32)
+        for (t, _sid), cells in zip(evs, cells_list):
+            tev[cells // Wd - y0, cells % Wd - x0] = T(t)
+        lab, nl = ndimage.label(mask, np.ones((3, 3)))
+        prev = ctl[y0:y1, x0:x1]
+        atk = ndimage.binary_dilation(prev == new, np.ones((3, 3)))
+        arrival = np.zeros(shp, np.float32)
+        for comp in range(1, nl + 1):
+            cm = lab == comp
+            seeds = cm & atk
+            if not seeds.any():                                   # landing from the sea / paradrop: start at the coast
+                seeds = cm & ndimage.binary_dilation((~land[y0:y1, x0:x1]) & ~cm, np.ones((3, 3)))
+            if not seeds.any():
+                cy, cx = np.nonzero(cm); k = np.argmin((cy - cy.mean()) ** 2 + (cx - cx.mean()) ** 2)
+                seeds = np.zeros(shp, bool); seeds[cy[k], cx[k]] = True
+            cost = np.where(cm, 1.0, np.inf)
+            dist, _ = MCP_Geometric(cost).find_costs(list(zip(*np.nonzero(seeds))))
+            dist = np.where(cm & np.isfinite(dist), dist, 0)
+            # one (distance, time) point per captured state: its median distance and its capture time
+            pts = {}
+            for (t, sid), cells in zip(evs, cells_list):
+                sm = np.zeros(shp, bool); sm[cells // Wd - y0, cells % Wd - x0] = True
+                sm &= cm
+                if sm.any():
+                    pts[sid] = (float(np.median(dist[sm])), T(t))
+            if not pts:
+                continue
+            D = np.array([p[0] for p in pts.values()]); Tt = np.array([p[1] for p in pts.values()])
+            o = np.argsort(D, kind="stable"); D, Tt = D[o], Tt[o]
+            fit, wts = pav(Tt)
+            # expand pooled values back onto their points, then interpolate time against distance
+            fit_full = np.repeat(fit, np.round(wts).astype(int))
+            if len(D) >= 2 and D[-1] - D[0] > 2:
+                slope = (fit_full[-1] - fit_full[0]) / (D[-1] - D[0])
+                V = 1.0 / slope if slope > 1e-3 else V_DEFAULT
+                V = float(np.clip(V, 8.0, 60.0))
+            else:
+                V = V_DEFAULT
+            d = dist[cm]
+            t_cell = np.interp(d, D, fit_full)
+            t_cell = np.where(d < D[0], fit_full[0] + (d - D[0]) / V, t_cell)
+            t_cell = np.where(d > D[-1], fit_full[-1] + (d - D[-1]) / V, t_cell)
+            arrival[cm] = t_cell
+            # no cell may arrive more than a few days from its own state's recorded capture time
+            arrival[cm] = np.clip(arrival[cm], tev[cm] - 3.0, tev[cm] + 3.0)
+        ys2, xs2 = np.nonzero(mask)
+        arr_c = arrival[ys2, xs2]
+        t_lo = max(0.0, float(arr_c.min())); t_hi = max(float(arr_c.max()), t_lo + 0.05)
+        frac = np.clip(np.round((arr_c - t_lo) / (t_hi - t_lo) * 255), 0, 255).astype(np.uint8)
+        idx = ((ys2 + y0) * Wd + (xs2 + x0)).astype(np.int64)
+        o2 = np.argsort(idx)
+        groups.append(Group(0, t_lo, t_hi, idx[o2], np.full(idx.size, new, np.uint8), frac[o2], "advance"))
+        adv_rec.append((idx[o2], new, t_lo + (t_hi - t_lo) * frac[o2] / 255.0))
+        ctl[ys2 + y0, xs2 + x0] = new
+    n_ev = len(groups)
+    t_end = T(max([e["t"] for e in camp["events"]] + [sn["t"] for sn in snaps] + [r["t"] for r in camp["divisions"]] + [0.0]))
     os.makedirs(out_dir, exist_ok=True)
     nbytes = write_stream(os.path.join(out_dir, "territory.bin"), base_cty, base_ctl, groups, t_end)
-    print(f"territory: {len(groups)} advances ({n_ev} from control events, {n_fix} corrected from monthly snapshots), "
+    print(f"territory: {len(changes)} state captures merged into {n_ev} smooth advances ({n_fix} corrected from monthly snapshots), "
           f"{nbytes / 1e6:.1f} MB raw")
 
     # ---- positions
@@ -324,6 +570,11 @@ def build(log_path, states_path, out_dir):
     used = {row[1] for f in forces for row in f["r"]}
     state_pos = {str(s): [round(spos[str(s)][0], 3), round(spos[str(s)][1], 3)] for s in used if str(s) in spos}
 
+
+    # ---- fronts: where two countries at war meet, with the troops on each side
+    fronts = compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags)
+    print(f"fronts: {len(fronts)} tracks")
+
     # ---- meta and campaign files
     units = [{"id": uid[t], "code": t, "name": cname(t), "kind": "state", "factions": fac[t]} for t in tags]
     meta = {"epoch": day0.strftime("%Y-%m-%dT00:00:00Z"), "tEnd": t_end, "grid": {"w": int(Wd), "h": int(H)},
@@ -332,7 +583,7 @@ def build(log_path, states_path, out_dir):
     with open(os.path.join(out_dir, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False)
     campaign = {"format": "ww2dbd-hoi4-replay/0.1", "start": camp["start"], "end": camp["end"], "calibration": cal,
-                "events": ev_out, "forces": forces, "statePos": state_pos,
+                "events": ev_out, "forces": forces, "fronts": fronts, "statePos": state_pos,
                 "countries": {t: camp["countries"].get(t, {}).get("name", t) for t in tags},
                 "casualties": camp["casualties"], "leaders": camp["leaders"][-400:]}
     with open(os.path.join(out_dir, "campaign.json"), "w", encoding="utf-8") as f:
