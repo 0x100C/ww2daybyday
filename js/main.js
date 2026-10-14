@@ -397,16 +397,17 @@ async function main() {
       const k = app.pal ? [app.pal[id * 4], app.pal[id * 4 + 1], app.pal[id * 4 + 2]] : [60, 60, 60];
       return `rgba(${k[0] * 0.55 | 0},${k[1] * 0.55 | 0},${k[2] * 0.55 | 0},0.95)`;
     };
+    const labels = [];
     for (const tr of FR) {
       const a = tr.s;
-      if (t < a[0][0] - 1.5 || t > a[a.length - 1][0] + 1.5) continue;
+      if (t < a[0][0] - 0.6 || t > a[a.length - 1][0] + 0.6) continue;
       const tt = Math.min(a[a.length - 1][0], Math.max(a[0][0], t));
       let i = 0;
       while (i < a.length - 2 && a[i + 1][0] < tt) i++;
       const p = a[i], q = a[i + 1] || p;
       const f = q[0] > p[0] ? smooth01((tt - p[0]) / (q[0] - p[0])) : 0;
       const L = (k) => p[k] + (q[k] - p[k]) * f;
-      const fade = Math.min(1, (t - a[0][0] + 1.5) / 1.5, (a[a.length - 1][0] + 1.5 - t) / 1.5);
+      const fade = Math.min(1, (t - a[0][0] + 0.6) / 0.6, (a[a.length - 1][0] + 0.6 - t) / 0.6);
       const [sx, sy] = rr.toScreen(mercX(L(1)), millerY(L(2)));
       const x = sx / rr.dpr, y = sy / rr.dpr;
       if (x < -80 || y < -80 || x > overlay.clientWidth + 80 || y > overlay.clientHeight + 80) continue;
@@ -419,19 +420,36 @@ async function main() {
       const sides = [[tr.a, L(8), A], [tr.b, L(9), B]];
       for (const [id, men, P] of sides) {
         if (men < 500) continue;
-        c.save();
-        c.globalAlpha = Math.max(0, fade);
-        c.translate(P[0] / rr.dpr, P[1] / rr.dpr);
-        c.rotate(rad);
-        c.font = `700 ${size.toFixed(1)}px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif`;
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.shadowColor = side(id); c.shadowBlur = 7;
-        c.fillStyle = '#ffffff';
-        c.fillText(fmt(men), 0, 0);
-        c.shadowBlur = 3;
-        c.fillText(fmt(men), 0, 0);
-        c.restore();
+        labels.push({ id, men, x: P[0] / rr.dpr, y: P[1] / rr.dpr, rad, size, fade });
       }
+    }
+    // biggest first; a label that would sit on top of one already drawn is skipped
+    labels.sort((p, q) => q.men - p.men);
+    const placed = [];
+    for (const lb of labels) {
+      const txt = fmt(lb.men);
+      let box = null;
+      for (const k of [1, 0.78, 0.6]) {                       // shrink a crowded label before giving up on it
+        const sz = lb.size * k;
+        const hw = txt.length * sz * 0.31 + 4, hh = sz * 0.62;
+        const ex = Math.abs(Math.cos(lb.rad)) * hw + Math.abs(Math.sin(lb.rad)) * hh;
+        const ey = Math.abs(Math.sin(lb.rad)) * hw + Math.abs(Math.cos(lb.rad)) * hh;
+        if (!placed.some((q) => Math.abs(q.x - lb.x) < q.ex + ex && Math.abs(q.y - lb.y) < q.ey + ey)) { box = { x: lb.x, y: lb.y, ex, ey }; lb.size = Math.max(10, sz); break; }
+      }
+      if (!box) continue;
+      placed.push(box);
+      c.save();
+      c.globalAlpha = Math.max(0, lb.fade);
+      c.translate(lb.x, lb.y);
+      c.rotate(lb.rad);
+      c.font = `700 ${lb.size.toFixed(1)}px "Open Sans", "Segoe UI", Calibri, Arial, sans-serif`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.shadowColor = side(lb.id); c.shadowBlur = 7;
+      c.fillStyle = '#ffffff';
+      c.fillText(txt, 0, 0);
+      c.shadowBlur = 3;
+      c.fillText(txt, 0, 0);
+      c.restore();
     }
   }
   function showTip(e) {

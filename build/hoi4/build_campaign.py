@@ -100,8 +100,8 @@ def smooth_states(arr, scale, hx, hy, sigma=1.2, floor=0.35):
     def field(step, sg):                                         # smooth noise on a coarse lattice, roughly -1..1
         f = ndimage.gaussian_filter(rng.standard_normal((h // step + 3, w // step + 3)).astype(np.float32), sg)
         return f / (np.percentile(np.abs(f), 99) + 1e-6), step
-    warps = [field(9, 1.2), field(3, 1.0)]                       # ~35 km wobble and ~12 km ruggedness (HOI4 grid cells)
-    amps = [1.1, 0.35]
+    warps = [field(10, 1.3), field(3, 0.9), field(1, 0.8)]                       # ~35 km wobble and ~12 km ruggedness (HOI4 grid cells)
+    amps = [2.5, 2.1, 0.8]
     def warp(gy, gx):
         dy = np.zeros_like(gy); dx = np.zeros_like(gx)
         for (f, st), a in zip(warps, amps):
@@ -202,13 +202,35 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
     flat_ctl = base_ctl.ravel().copy()
     adv_i = 0
     adv_sorted = sorted(range(len(adv_rec)), key=lambda i: adv_rec[i][2].min())
-    for fs in forces:
-        t = fs["t"]
-        ctl = base_ctl.copy()
-        for idx, new, arr in adv_rec:
-            m = arr <= t
-            if m.any():
-                ctl.ravel()[idx[m]] = new
+    maps = [{(r[0], r[1]): r[2:] for r in f["r"]} for f in forces]
+    def rows_at(t):
+        i = max(0, min(len(forces) - 2, int(np.searchsorted([f["t"] for f in forces], t, "right")) - 1))
+        A, B = maps[i], maps[i + 1]
+        f = min(1.0, max(0.0, (t - forces[i]["t"]) / max(1e-6, forces[i + 1]["t"] - forces[i]["t"])))
+        rows = []
+        for k in set(A) | set(B):
+            a, b = A.get(k), B.get(k)
+            if a and b:
+                v = [a[j] + (b[j] - a[j]) * f for j in range(3)]
+            else:
+                w = (1 - f) if a else f
+                v = [x * w for x in (a or b)]
+            rows.append([k[0], k[1], v[0], v[1], v[2]])
+        return rows
+    day_ts = list(np.arange(math.ceil(forces[0]["t"]), forces[-1]["t"] + 1e-6, 1.0)) if len(forces) > 1 else []
+    ctl = base_ctl.copy()
+    order_g = [np.argsort(arr, kind="stable") for _idx, _new, arr in adv_rec]
+    sorted_arr = [arr[o] for (_i, _n, arr), o in zip(adv_rec, order_g)]
+    ptr = [0] * len(adv_rec)
+    flat = ctl.ravel()
+    for t in day_ts:
+        t = float(t)
+        fs = {"t": t, "r": rows_at(t)}
+        for g, (idx, new, _arr) in enumerate(adv_rec):
+            n_ = int(np.searchsorted(sorted_arr[g], t, "right"))
+            if n_ > ptr[g]:
+                flat[idx[order_g[g][ptr[g]:n_]]] = new
+                ptr[g] = n_
         d = ctl[DS // 2::DS, DS // 2::DS][:H4, :W4]
         # encirclements: a piece of a country at war that is entirely ringed by its enemies and cut off from its main body
         seen_pk = []
@@ -296,22 +318,23 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
                 if nn < 1e-6:
                     continue
                 nv /= nn
-                # label anchors: walk from the front centre into each side's own ground and stop halfway
+                # label anchors: the spot well inside each side's own ground, near the front centre
                 anch = []
+                wy0, wy1 = int(max(0, cen[1] - 24)), int(min(H4, cen[1] + 25))
+                wx0, wx1 = int(max(0, cen[0] - 24)), int(min(W4, cen[0] + 25))
+                gy_, gx_ = np.mgrid[wy0:wy1, wx0:wx1]
                 for who, sg in ((u, 1), (v, -1)):
-                    run, inside = 0, False
-                    for k in range(1, 40):
-                        px = int(round(cen[0] + nv[0] * sg * k)); py = int(round(cen[1] + nv[1] * sg * k))
-                        if not (0 <= px < W4 and 0 <= py < H4):
-                            break
-                        if d[py, px] == who:
-                            inside = True; run += 1
-                        elif inside:
-                            break
-                        elif k > 4:
-                            break
-                    off = float(np.clip(0.5 * run + 1.0, 2.5, 13.0)) if inside else 2.5
-                    anch.append(lonlat(cen[0] + nv[0] * sg * off, cen[1] + nv[1] * sg * off))
+                    own = d[wy0:wy1, wx0:wx1] == who
+                    ind = ndimage.distance_transform_edt(own)
+                    along = (gx_ - cen[0]) * nv[0] * sg + (gy_ - cen[1]) * nv[1] * sg
+                    dist_c = np.hypot(gx_ - cen[0], gy_ - cen[1])
+                    score = np.where(own & (along > 0) & (dist_c < 18), np.minimum(ind, 9.0) - 0.14 * dist_c, -1e9)
+                    k = int(np.argmax(score))
+                    if score.ravel()[k] < -1e8:
+                        ax, ay = cen[0] + nv[0] * sg * 3, cen[1] + nv[1] * sg * 3
+                    else:
+                        ay, ax = gy_.ravel()[k], gx_.ravel()[k]
+                    anch.append(lonlat(ax, ay))
                 cy_, cx_ = int(cen[1]), int(cen[0])
                 comp_lab = land_lab[Q[len(Q) // 2][1].astype(int), Q[len(Q) // 2][0].astype(int)]
                 cur.append({"u": u, "v": v, "cen": cen, "ang": ang, "anch": anch, "land": int(comp_lab), "pts": Q})
@@ -387,7 +410,7 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
         if pk["n"] < 2:
             continue
         text = (f"{int(round(pk['men'], -3)):,} encircled" if pk["men"] >= 2000 else "Encircled")
-        labels.append({"t0": pk["t0"] - 0.5, "t1": pk["t1"] + 2.0, "lon": round(pk["ll"][0], 3), "lat": round(pk["ll"][1], 3),
+        labels.append({"t0": pk["t0"] - 0.5, "t1": pk["t1"] + 0.4, "lon": round(pk["ll"][0], 3), "lat": round(pk["ll"][1], 3),
                        "text": text, "side": "allied", "who": tag_of.get(pk["who"], ""), "src": "HOI4 campaign"})
     return out, labels
 
@@ -547,12 +570,17 @@ def build(log_path, states_path, out_dir):
     for sn in snaps[1:]:
         timeline.append(("s", sn["t"], sn["states"]))
     timeline.sort(key=lambda r: (r[1], 0 if r[0] == "c" else 1))
+    cap_t = {}
+    for e in camp["events"]:
+        if e["kind"] == "CAPITULATION" and e["tags"]:
+            cap_t.setdefault(e["tags"][0], []).append(e["t"])
     changes = []                                                 # (t, state, new tag, source)
     for kind, t, payload in timeline:
         if kind == "c":
             sid, _frm, to = payload
             if cur.get(sid) != to:
-                changes.append((t, sid, to, "control")); cur[sid] = to
+                admin = any(abs(t - ct) < 0.3 for ct in cap_t.get(cur.get(sid), []))
+                changes.append((t, sid, to, "transfer" if admin else "control")); cur[sid] = to
         else:
             for sid, tag in payload.items():
                 if cur.get(sid) != tag:
@@ -565,12 +593,13 @@ def build(log_path, states_path, out_dir):
     clusters = []
     open_c = {}
     for ch in sorted(changes, key=lambda c: c[0]):
-        c = open_c.get(ch[2])
-        if c and ch[0] - c["last"] <= GAP and ch[0] - c["first"] <= MAXSPAN:
+        key = (ch[2], ch[3] == "transfer")
+        c = open_c.get(key)
+        if c and ch[0] - c["last"] <= (0.3 if key[1] else GAP) and ch[0] - c["first"] <= (0.5 if key[1] else MAXSPAN):
             c["ev"].append(ch); c["last"] = ch[0]
         else:
-            c = {"tag": ch[2], "first": ch[0], "last": ch[0], "ev": [ch]}
-            open_c[ch[2]] = c; clusters.append(c)
+            c = {"tag": ch[2], "first": ch[0], "last": ch[0], "ev": [ch], "transfer": key[1]}
+            open_c[key] = c; clusters.append(c)
     clusters.sort(key=lambda c: c["first"])
 
     from skimage.graph import MCP_Geometric
@@ -583,10 +612,11 @@ def build(log_path, states_path, out_dir):
     for wa, wb, w0, _w1 in wars:
         war_t0[(uid[wa], uid[wb])] = war_t0[(uid[wb], uid[wa])] = w0
     GAMMA = 3.0                                                   # >1 sharpens road/rail corridors into spearheads
-    DEFAULT_SPAN, MIN_SPAN, MAX_SPAN_S = 6.0, 2.0, 14.0
+    DEFAULT_SPAN, MIN_SPAN, MAX_SPAN_S = 8.0, 3.0, 20.0
     for cl in clusters:
         new = uid.get(cl["tag"])
         evs = [(t, sid) for t, sid, _tag, _src in cl["ev"] if cells_of(int(sid)).size]
+        is_tr = cl.get("transfer", False)
         if new is None or not evs:
             continue
         cells_list = [cells_of(int(sid)) for _t, sid in evs]
@@ -601,7 +631,13 @@ def build(log_path, states_path, out_dir):
         lab, nl = ndimage.label(mask, np.ones((3, 3)))
         prev = ctl[y0:y1, x0:x1]
         atk = ndimage.binary_dilation(prev == new, np.ones((3, 3)))
-        cost_all = np.maximum(mob[y0:y1, x0:x1], 0.3) ** GAMMA
+        mn = np.clip((mob[y0:y1, x0:x1] - 0.5) / 0.8, 0, 1)         # 0 = slow ground, 1 = main roads and rail
+        nz = ndimage.gaussian_filter(np.random.default_rng(int(cl["first"] * 7) + 1).standard_normal(shp).astype(np.float32), 9)
+        nz /= np.percentile(np.abs(nz), 99) + 1e-6
+        nz3 = ndimage.gaussian_filter(np.random.default_rng(int(cl["first"] * 11) + 5).standard_normal(shp).astype(np.float32), 3)
+        nz3 /= np.percentile(np.abs(nz3), 99) + 1e-6
+        nz = np.clip(0.75 * nz + 0.5 * nz3, -1.2, 1.2)             # ragged front: ~10 km and ~4 km irregularities
+        cost_all = (1.55 - 1.1 * mn ** 0.8) * (1.0 + 0.45 * np.clip(nz, -1, 1))   # roads ~3x faster than rough ground, plus ragged ground
         for comp in range(1, nl + 1):
             cm = lab == comp
             seeds = cm & atk
@@ -622,14 +658,14 @@ def build(log_path, states_path, out_dir):
                 # previous capture next to this state by the same attacker: the advance into it started then
                 prevs = [tk[j] for j in members if j != k and tk[j] <= tk[k] - 0.02 and (dil[k] & smask[j] & cm).any()]
                 span = tk[k] - max(prevs) if prevs else DEFAULT_SPAN
-                span = float(np.clip(span, MIN_SPAN, MAX_SPAN_S))
+                span = 0.6 if is_tr else float(np.clip(span, MIN_SPAN, MAX_SPAN_S))
                 old = np.bincount(prev[sm].astype(int)).argmax()
                 w0 = war_t0.get((new, int(old)))
                 ts = tk[k] - span
-                if w0 is not None:
+                if w0 is not None and not is_tr:
                     ts = min(max(ts, w0), tk[k] - 0.5)
                 lo, hi = np.percentile(d, 3), np.percentile(d, 97)
-                u = np.clip((d - lo) / max(hi - lo, 1e-6), 0, 1)
+                u = np.clip((d - lo) / max(hi - lo, 1e-6) + 0.30 * nz[sm], 0, 1)
                 arrival[sm] = ts + (tk[k] - ts) * u
             ys2, xs2 = np.nonzero(cm)
             arr_c = arrival[ys2, xs2]
