@@ -73,6 +73,7 @@ What you get:
 - **Territory:** each state's control is painted on the map and changes as it did in your game, as the same smooth advances the historical map uses: states captured by the same country sweep through as one continuous advance: the front starts moving into a state when the previous one fell and creeps along roads and railways until the log records the capture, and state edges are rounded. Borders, fronts and the white advance band all work.
 - **Wars and sides:** wars come from the log; colours follow the faction each country belongs to.
 - **Event list** (☰ or E): capitulations, war declarations, landings, annexations, each with a position. Click one to fly there and jump to its date.
+- **Irregular fronts:** the front does not stop on state borders. It crosses them, and pushes fingers (along roads and rail) into the next state before that state falls. Those fingers are inferred, since the log only records whole states.
 - **Surrender:** when a country capitulates, its remaining states change hands at that moment, not as an advance.
 - **Real borders:** country borders are snapped to the real 1939 borders of the historical map; borders between states keep HOI4's state shapes, with slightly irregular edges.
 - **Encirclements:** a piece of a country at war that is completely ringed by its enemies and cut off from its main territory is marked as encircled, with the men the log places inside it.

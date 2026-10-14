@@ -244,7 +244,7 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
             sizes = np.bincount(lab_c.ravel())[1:]
             main = int(sizes.argmax()) + 1
             for c in range(1, n_c + 1):
-                if c == main or sizes[c - 1] < 15:
+                if c == main or sizes[c - 1] < 45:
                     continue
                 cm_ = lab_c == c
                 ring = ndimage.binary_dilation(cm_) & ~cm_
@@ -328,7 +328,7 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
                     ind = ndimage.distance_transform_edt(own)
                     along = (gx_ - cen[0]) * nv[0] * sg + (gy_ - cen[1]) * nv[1] * sg
                     dist_c = np.hypot(gx_ - cen[0], gy_ - cen[1])
-                    score = np.where(own & (along > 0) & (dist_c < 18), np.minimum(ind, 9.0) - 0.14 * dist_c, -1e9)
+                    score = np.where(own & (along > -1) & (dist_c < 32), np.minimum(ind, 9.0) - 0.14 * dist_c, -1e9)
                     k = int(np.argmax(score))
                     if score.ravel()[k] < -1e8:
                         ax, ay = cen[0] + nv[0] * sg * 3, cen[1] + nv[1] * sg * 3
@@ -622,7 +622,7 @@ def build(log_path, states_path, out_dir):
         cells_list = [cells_of(int(sid)) for _t, sid in evs]
         allc = np.concatenate(cells_list)
         yy, xx = allc // Wd, allc % Wd
-        y0, y1, x0, x1 = max(0, yy.min() - 4), min(H, yy.max() + 5), max(0, xx.min() - 4), min(Wd, xx.max() + 5)
+        y0, y1, x0, x1 = max(0, yy.min() - 40), min(H, yy.max() + 41), max(0, xx.min() - 40), min(Wd, xx.max() + 41)
         shp = (y1 - y0, x1 - x0)
         mask = np.zeros(shp, bool); mask[yy - y0, xx - x0] = True
         smask = []                                               # per-state mask in the local window
@@ -661,13 +661,40 @@ def build(log_path, states_path, out_dir):
                 span = 0.6 if is_tr else float(np.clip(span, MIN_SPAN, MAX_SPAN_S))
                 old = np.bincount(prev[sm].astype(int)).argmax()
                 w0 = war_t0.get((new, int(old)))
-                ts = tk[k] - span
+                ts = tk[k] - span * (1.0 if is_tr else 1.6)
                 if w0 is not None and not is_tr:
                     ts = min(max(ts, w0), tk[k] - 0.5)
                 lo, hi = np.percentile(d, 3), np.percentile(d, 97)
                 u = np.clip((d - lo) / max(hi - lo, 1e-6) + 0.30 * nz[sm], 0, 1)
                 arrival[sm] = ts + (tk[k] - ts) * u
-            ys2, xs2 = np.nonzero(cm)
+            sel = cm.copy()
+            if not is_tr:
+                # the front rarely stops exactly on a state border: it has pushed fingers into the next state
+                # (along roads and rail) that the log does not show because the state has not fallen yet
+                owners_old = np.unique(prev[cm])
+                later = {int(sid) for t2, sid, tag2, src2 in changes if t2 > cl["last"] + 0.01 and src2 != "transfer"}
+                free = np.ones(shp, bool)
+                if later:
+                    free = ~np.isin(cs[y0:y1, x0:x1], list(later))
+                allowed = land[y0:y1, x0:x1] & ~cm & np.isin(prev, owners_old) & (prev != new) & free
+                allowed &= ndimage.binary_dilation(cm, np.ones((3, 3)), iterations=36)
+                if allowed.any():
+                    rg = np.random.default_rng(int(cl["first"] * 13) + int(comp))
+                    nzb = ndimage.gaussian_filter(rg.standard_normal(shp).astype(np.float32), 10)
+                    nzb /= np.percentile(np.abs(nzb), 99) + 1e-6
+                    road = ndimage.gaussian_filter(mn, 5)
+                    road = road / (np.percentile(road[road > 0], 95) + 1e-6) if (road > 0).any() else road
+                    depth = 1.5 + 36 * np.clip(0.9 * road + 0.5 * nzb + 0.05, 0, 1)
+                    de, (iy_, ix_) = ndimage.distance_transform_edt(~cm, return_indices=True)
+                    bleed = allowed & (de <= depth)
+                    if bleed.any():
+                        # each finger starts when the state it grows from falls, and creeps out over a few days
+                        arrival[bleed] = arrival[iy_[bleed], ix_[bleed]] + np.minimum(de[bleed] / 9.0, 4.0)
+                        sel = cm | bleed
+            sel = sel & (prev != new)                                 # cells already taken by an earlier advance stay as they are
+            if not sel.any():
+                continue
+            ys2, xs2 = np.nonzero(sel)
             arr_c = arrival[ys2, xs2]
             t_lo = max(0.0, float(arr_c.min())); t_hi = max(float(arr_c.max()), t_lo + 0.05)
             frac = np.clip(np.round((arr_c - t_lo) / (t_hi - t_lo) * 255), 0, 255).astype(np.uint8)
@@ -675,7 +702,7 @@ def build(log_path, states_path, out_dir):
             o2 = np.argsort(idx)
             groups.append(Group(0, t_lo, t_hi, idx[o2], np.full(idx.size, new, np.uint8), frac[o2], "advance"))
             adv_rec.append((idx[o2], new, t_lo + (t_hi - t_lo) * frac[o2] / 255.0))
-        ctl[y0:y1, x0:x1][mask] = new
+            ctl[y0:y1, x0:x1][sel] = new
     n_ev = len(groups)
     t_end = T(max([e["t"] for e in camp["events"]] + [sn["t"] for sn in snaps] + [r["t"] for r in camp["divisions"]] + [0.0]))
     os.makedirs(out_dir, exist_ok=True)
