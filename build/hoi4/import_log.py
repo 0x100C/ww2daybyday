@@ -81,9 +81,8 @@ EVENT_TEXT = {
 }
 
 
-def main():
-    src = sys.argv[1]
-    out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "..", "..", "data", "hoi4_campaign.json")
+def load(src):
+    """Parse a game.log into a campaign dict (see module docstring)."""
     rows = []
     with open(src, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -99,7 +98,7 @@ def main():
                 continue
             rows.append((d, parts[1], parts[2:]))
     if not rows:
-        sys.exit("no WW2DBD lines found - is the logger mod enabled?")
+        raise SystemExit("no WW2DBD lines found - is the logger mod enabled?")
     rows.sort(key=lambda r: r[0])
     t0 = rows[0][0]
     T = lambda d: round((d - t0).total_seconds() / 86400.0, 4)  # noqa: E731
@@ -108,6 +107,7 @@ def main():
     snapshots = defaultdict(dict)
     div_rows = {}
     casualties, leaders, capitals, fac_leaders, allies = defaultdict(list), [], {}, {}, {}
+    owners, capital_names = {}, {}
     probe = Counter()
     probe_samples = []
     for d, kind, f in rows:
@@ -129,8 +129,12 @@ def main():
             try:
                 if 0 < float(pos[1]) < 100000:      # v0.2 printed a garbled number; ignore those
                     capitals[pos[0]] = pos[1]
+                    if len(pos) > 2:
+                        capital_names[pos[0]] = pos[2]
             except ValueError:
                 pass
+        elif kind == "STATE_OWNER" and len(pos) >= 2:
+            owners.setdefault(pos[0], pos[1])               # owner at the first record
         elif kind == "FACTION_LEADER" and pos:
             fac_leaders.setdefault(t, []).append(pos[0])
         elif kind == "ALLY" and len(pos) >= 2:
@@ -168,9 +172,23 @@ def main():
         "casualties": casualties,
         "leaders": leaders,
         "capitals": capitals,
+        "capital_names": capital_names,
+        "owners": owners,
         "factions": [{"t": t, "leaders": fac_leaders.get(t, []), "allies": a} for t, a in sorted(allies.items())],
         "probe": {"counts": dict(probe), "samples": probe_samples},
     }
+    camp["_rows"] = len(rows)
+    camp["_probe_counts"] = probe
+    return camp
+
+
+def main():
+    src = sys.argv[1]
+    out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "..", "..", "data", "hoi4_campaign.json")
+    camp = load(src)
+    rows, countries, events, control = range(camp.pop("_rows")), camp["countries"], camp["events"], camp["control"]
+    probe, probe_samples = camp.pop("_probe_counts"), camp["probe"]["samples"]
+    allies, leaders, div_rows, combats, stats = camp["factions"], camp["leaders"], camp["divisions"], camp["combats"], camp["stats"]
     with open(out, "w", encoding="utf-8") as f:
         json.dump(camp, f, ensure_ascii=False, indent=0)
     print(f"{len(rows)} log lines, {len(countries)} countries, {len(events)} events, {len(control)} control changes, "

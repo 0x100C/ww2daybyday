@@ -58,6 +58,28 @@ With `save_as_binary=no`, saves are plain text and contain everything the game s
 
 Several community sources say Ironman saves stay binary regardless of this setting. To check yours: a plain-text save starts with `HOI4txt`, a binary one with `HOI4bin`. You can see this by opening the `.hoi4` file in a text editor.
 
+## Replay a campaign on the map
+
+You need two files: the `game.log` from your campaign and `hoi4_states.json` (see "Placing states on the map" below).
+
+```
+python3 build/hoi4/build_campaign.py "<...>/logs/game.log" data/hoi4_states.json
+node server.js
+```
+
+Then open http://127.0.0.1:3847/?campaign=hoi4
+
+What you get:
+- **Territory:** each state's control is painted on the map and changes as it did in your game, as the same smooth advances the historical map uses. Borders, fronts and the white advance band all work.
+- **Wars and sides:** wars come from the log; colours follow the faction each country belongs to.
+- **Event list** (☰ or E): capitulations, war declarations, landings, annexations, each with a position. Click one to fly there and jump to its date.
+- **Show divisions:** a marker per country per area, sized by manpower and labelled with the country tag; the black badge is the number of divisions and the orange arc is the share that is armoured. Markers cross-fade between the 3-day snapshots. Hover for the country, divisions, armour and men. All of these are lower bounds from the log, and positions are per state.
+- **Slow playback:** the speed menu goes down to 0.25 days per second.
+
+The build step needs Python 3 with numpy and scipy. If you do not have Python, send me the two files and I will build it and push it.
+
+Current limits: state shapes are rough unless your `hoi4_states.json` came from the 0.2 extractor (the one that includes the shape grid; re-run it to get exact shapes); the map covers Europe, North Africa and the Middle East only, so fighting elsewhere (China, the Pacific, the Americas) happens off screen until the world map is built.
+
 ## Import
 
 ```
@@ -80,4 +102,4 @@ HOI4 states have to be located on the real-world map. Run this once on your PC; 
 node build/hoi4/extract_states.mjs "C:\Program Files (x86)\Steam\steamapps\common\Hearts of Iron IV"
 ```
 
-It creates `data/hoi4_states.json` (a few hundred KB). The map viewer for campaigns uses it to put states, divisions and fronts in the right places.
+It creates `data/hoi4_states.json` (about 2 MB, including a coarse grid of state shapes). The map viewer for campaigns uses it to put states, divisions and fronts in the right places.

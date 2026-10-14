@@ -7,8 +7,9 @@
 //   map/definition.csv           province id ; r ; g ; b ; ...
 //   history/states/*.txt         state id and its province list
 //   history/countries/*.txt      capital state of each country
-// Writes data/hoi4_states.json (a few hundred KB): for every state its centroid and
-// bounding box in map pixels, plus every country's capital state. The app converts
+// Writes data/hoi4_states.json (about 2 MB): for every state its centroid and bounding
+// box in map pixels, every country's capital state, and a coarse grid of state ids
+// (one per 4x4 pixels) giving the state shapes. The app converts
 // pixels to real-world coordinates by fitting the capitals to their known locations.
 //
 // Nothing is copied from the game except numbers (ids, pixel positions).
@@ -65,6 +66,9 @@ const H = Math.abs(Hraw), topDown = Hraw < 0;
 if (bpp !== 24 && bpp !== 32) { console.error(`unsupported BMP depth ${bpp} (expected 24)`); process.exit(1); }
 const bytes = bpp / 8, rowSize = Math.ceil((W * bpp) / 32) * 4;
 const acc = new Map();                                  // state -> [sumX, sumY, n, minX, minY, maxX, maxY]
+// coarse state-shape grid: the state at the centre of every 4x4 block of map pixels (0 = sea/unassigned)
+const SC = 4, GW = Math.ceil(W / SC), GH = Math.ceil(H / SC);
+const grid = new Uint16Array(GW * GH);
 for (let y = 0; y < H; y++) {
   const row = dataOff + (topDown ? y : H - 1 - y) * rowSize;   // y = 0 is the top of the map
   for (let x = 0; x < W; x++) {
@@ -73,6 +77,7 @@ for (let y = 0; y < H; y++) {
     if (prov === undefined) continue;
     const st = provState.get(prov);
     if (st === undefined) continue;
+    if ((x & 3) === 2 && (y & 3) === 2) grid[(y >> 2) * GW + (x >> 2)] = st;
     let a = acc.get(st);
     if (!a) { a = [0, 0, 0, x, y, x, y]; acc.set(st, a); }
     a[0] += x; a[1] += y; a[2]++;
@@ -81,5 +86,7 @@ for (let y = 0; y < H; y++) {
 }
 const states = {};
 for (const [st, a] of acc) states[st] = { x: +(a[0] / a[2]).toFixed(1), y: +(a[1] / a[2]).toFixed(1), n: a[2], box: [a[3], a[4], a[5], a[6]] };
-writeFileSync(out, JSON.stringify({ format: 'ww2dbd-hoi4-states/0.1', width: W, height: H, states, capitals }));
+const gridB64 = Buffer.from(grid.buffer, grid.byteOffset, grid.byteLength).toString('base64');
+writeFileSync(out, JSON.stringify({ format: 'ww2dbd-hoi4-states/0.2', width: W, height: H, states, capitals,
+  grid: { scale: SC, w: GW, h: GH, encoding: 'uint16le-base64', data: gridB64 } }));
 console.log(`map ${W}x${H}, ${colour.size} provinces, ${nStates} state files, ${Object.keys(states).length} states placed, ${Object.keys(capitals).length} capitals -> ${out}`);

@@ -1,11 +1,14 @@
 import { Renderer } from './renderer.js';
 import { loadTerritory, WindowBuffers } from './territory.js';
 import { GEO, mercX, millerY } from './geo.js';
-import { palette, warMatrix, dayOf } from './factions.js';
+import { palette, warMatrix, dayOf, setEpoch } from './factions.js';
 
 const $ = (id) => document.getElementById(id);
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-const EPOCH = Date.UTC(1939, 8, 1);
+let EPOCH = Date.UTC(1939, 8, 1);
+// ?campaign=hoi4 replays a recorded Hearts of Iron IV campaign (data/hoi4/) instead of the 1939-45 history
+const CAMPAIGN = new URLSearchParams(location.search).get('campaign');
+const DATA = CAMPAIGN ? `data/${CAMPAIGN}` : 'data';
 
 // Reference camera: Ireland to the Caspian, North Cape region to Libya.
 const REF_VIEW = { lon: 17.67, lat: 47.90, span: 76.56 };
@@ -52,16 +55,19 @@ async function main() {
 
   $('loading').textContent = 'Loading historical data…';
   const [meta, terr] = await Promise.all([
-    fetch('data/meta.json').then((x) => x.json()),
-    loadTerritory('data/territory.bin'),
+    fetch(`${DATA}/meta.json`).then((x) => x.json()),
+    loadTerritory(`${DATA}/territory.bin`),
   ]);
   app.meta = meta;
+  if (CAMPAIGN && meta.epoch) { EPOCH = Date.parse(meta.epoch); setEpoch(EPOCH); }
+  const campaign = CAMPAIGN ? await fetch(`${DATA}/campaign.json`).then((x) => x.json()) : null;
+  app.campaign = campaign;
   // front strengths: dated anchors -> per-day interpolated label tracks
   const parseT = (s) => {
     const [d, h] = s.split(' ');
     return (Date.parse(d + 'T00:00:00Z') - EPOCH) / 864e5 + (h ? +h / 24 : 0);
   };
-  const strengths = await fetch('data/strengths.json').then((x) => (x.ok ? x.json() : { fronts: [] })).catch(() => ({ fronts: [] }));
+  const strengths = CAMPAIGN ? { fronts: [] } : await fetch('data/strengths.json').then((x) => (x.ok ? x.json() : { fronts: [] })).catch(() => ({ fronts: [] }));
   const tracks = [];
   for (const f of strengths.fronts) for (const s of f.sides) {
     tracks.push({
@@ -101,9 +107,10 @@ async function main() {
   // encirclement it replays the pocket from the start of the pincer movement
   // to its destruction at a slow, readable speed.
   const EV_TYPES = { capital: 'Capital captured', breakthrough: 'Breakthrough', collapse: 'Front collapse', encirclement: 'Encirclement' };
-  const evData = await fetch('data/events.json').then((x) => (x.ok ? x.json() : { events: [] })).catch(() => ({ events: [] }));
+  const evData = campaign ? { events: campaign.events }
+    : await fetch('data/events.json').then((x) => (x.ok ? x.json() : { events: [] })).catch(() => ({ events: [] }));
   const events = evData.events.map((e) => ({
-    ...e, t: parseT(e.date), t0: e.form ? parseT(e.form) : null, t1: e.end ? parseT(e.end) : null,
+    ...e, t: CAMPAIGN ? e.t : parseT(e.date), t0: e.form ? parseT(e.form) : null, t1: e.end ? parseT(e.end) : null,
   })).sort((a, b) => a.t - b.t);
   const evShown = new Set(Object.keys(EV_TYPES));
   const fmtN = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -215,9 +222,10 @@ async function main() {
     if (app.stepFly) app.stepFly(now);
     r.resize();
     setWindow(app.t);
-    r.uploadPalette(palette(meta.units, app.t));
+    app.pal = palette(meta.units, app.t);
+    r.uploadPalette(app.pal);
     const day = Math.floor(app.t * 4) / 4;
-    if (day !== app.warDay) { r.uploadWar(warMatrix(meta.units, app.t)); app.warDay = day; }
+    if (day !== app.warDay) { r.uploadWar(warMatrix(meta.units, app.t, meta.wars)); app.warDay = day; }
     // redraw the map only when something it depends on changed (time, camera, toggles, data)
     const camKey = `${r.cam.x},${r.cam.y},${r.cam.s},${r.canvas.width},${r.canvas.height},${r.opts.borders}${r.opts.fronts}`;
     if (app.t !== app.drawnT || camKey !== app.drawnCam || r.terrainDirty || app.win !== app.drawnWin) {
@@ -310,6 +318,102 @@ async function main() {
     }
   }
 
+
+  // ---------------------------------------------------------------- division markers (campaign replays)
+  // The HOI4 logger records, every 3 days, how many divisions (and armoured divisions, and men) each
+  // country has in each state - as lower bounds. Markers sit at the state centres; between snapshots
+  // they cross-fade, so armies appear to move. Close together they merge into one marker per country.
+  const unitById = Object.fromEntries(meta.units.map((u) => [u.id, u]));
+  const smooth01 = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+  function drawForces(c, rr, t) {
+    app.markers = [];
+    const F = app.campaign && app.campaign.forces;
+    if (!F || !F.length || !$('opt-divisions').checked || t < F[0].t) return;
+    let lo = 0, hi = F.length - 1;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (F[m].t <= t) lo = m; else hi = m - 1; }
+    const A = F[lo], B = F[lo + 1];
+    const f = B ? smooth01((t - A.t) / (B.t - A.t)) : 0;
+    const key = (r) => r[0] * 100000 + r[1];
+    const nextMap = new Map(); if (B) for (const r of B.r) nextMap.set(key(r), r);
+    const rows = [], seen = new Set();
+    for (const r of A.r) {
+      const nb = nextMap.get(key(r)); seen.add(key(r));
+      rows.push({ id: r[0], st: r[1], n: nb ? r[2] + (nb[2] - r[2]) * f : r[2], arm: nb ? r[3] + (nb[3] - r[3]) * f : r[3],
+        men: nb ? r[4] + (nb[4] - r[4]) * f : r[4], a: nb ? 1 : 1 - f });
+    }
+    if (B) for (const r of B.r) if (!seen.has(key(r))) rows.push({ id: r[0], st: r[1], n: r[2], arm: r[3], men: r[4], a: f });
+    const W = overlay.clientWidth, H = overlay.clientHeight, CELL = 36;
+    const cl = new Map();
+    for (const r of rows) {
+      if (r.a < 0.02) continue;
+      const p = app.campaign.statePos[r.st];
+      if (!p) continue;
+      const [sx, sy] = rr.toScreen(mercX(p[0]), millerY(p[1]));
+      const x = sx / rr.dpr, y = sy / rr.dpr;
+      if (x < -30 || y < -30 || x > W + 30 || y > H + 30) continue;
+      const k = `${r.id}:${Math.floor(x / CELL)}:${Math.floor(y / CELL)}`;
+      let g = cl.get(k);
+      if (!g) { g = { id: r.id, x: 0, y: 0, w: 0, n: 0, arm: 0, men: 0, a: 0, states: [] }; cl.set(k, g); }
+      const w = Math.max(1, r.men);
+      g.x += x * w; g.y += y * w; g.w += w; g.n += r.n; g.arm += r.arm; g.men += r.men; g.a = Math.max(g.a, r.a); g.states.push(r.st);
+    }
+    const list = [...cl.values()].map((g) => ({ ...g, x: g.x / g.w, y: g.y / g.w }));
+    list.sort((p, q) => p.men - q.men);                     // big armies on top
+    for (const g of list) {
+      const rad = 7 + 2.6 * Math.log10(Math.max(1, g.men / 500));
+      const pc = app.pal ? [app.pal[g.id * 4], app.pal[g.id * 4 + 1], app.pal[g.id * 4 + 2]] : [120, 120, 120];
+      c.save();
+      c.globalAlpha = g.a;
+      c.beginPath(); c.arc(g.x, g.y, rad, 0, Math.PI * 2);
+      c.fillStyle = `rgb(${pc[0] * 0.62 | 0},${pc[1] * 0.62 | 0},${pc[2] * 0.62 | 0})`; c.fill();
+      c.lineWidth = 1.6; c.strokeStyle = '#fff'; c.stroke();
+      if (g.arm >= 1) {                                      // armoured share as an orange arc
+        c.beginPath(); c.arc(g.x, g.y, rad + 2.6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, g.arm / Math.max(1, g.n)));
+        c.lineWidth = 2.4; c.strokeStyle = '#ff9f1c'; c.stroke();
+      }
+      const code = (unitById[g.id] || {}).code || '';
+      c.font = `700 ${Math.max(8, Math.min(11, rad * 0.8)) | 0}px "Segoe UI", Arial, sans-serif`;
+      c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff';
+      c.fillText(code, g.x, g.y + 0.5);
+      if (g.n >= 1) {                                        // division count badge
+        const bx = g.x + rad * 0.85, by = g.y + rad * 0.85;
+        c.beginPath(); c.arc(bx, by, 7.5, 0, Math.PI * 2); c.fillStyle = '#16181c'; c.fill();
+        c.fillStyle = '#fff'; c.font = '700 9.5px "Segoe UI", Arial, sans-serif';
+        c.fillText(String(Math.round(g.n)), bx, by + 0.5);
+      }
+      c.restore();
+      app.markers.push({ ...g, rad });
+    }
+  }
+  function showTip(e) {
+    const tip = $('tip');
+    if (!app.markers || !app.markers.length || !$('opt-divisions').checked) { tip.hidden = true; return; }
+    const rect = overlay.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    let hit = null;
+    for (let i = app.markers.length - 1; i >= 0; i--) {
+      const g = app.markers[i];
+      if ((g.x - mx) ** 2 + (g.y - my) ** 2 <= (g.rad + 4) ** 2) { hit = g; break; }
+    }
+    if (!hit) { tip.hidden = true; return; }
+    const u = unitById[hit.id] || {};
+    const fac = (app.pal ? '' : '');
+    tip.innerHTML = `<b>${campaign.countries[u.code] || u.code}</b> <span class="dim">(${u.code})</span><br>` +
+      `at least <b>${Math.round(hit.n)}</b> division${Math.round(hit.n) === 1 ? '' : 's'}` +
+      (hit.arm >= 1 ? `, <b>${Math.round(hit.arm)}</b> armoured` : '') + `<br>` +
+      `at least <b>${fmtN(hit.men)}</b> men<br>` +
+      `<span class="dim">${hit.states.length} state${hit.states.length === 1 ? '' : 's'} - positions are per state, counts are lower bounds from the log</span>${fac}`;
+    tip.hidden = false;
+    tip.style.left = Math.min(window.innerWidth - 300, e.clientX + 14) + 'px';
+    tip.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
+  }
+  if (campaign) {
+    $('lbl-divisions').hidden = false;
+    $('opt-numbers').parentElement.hidden = true;           // historical front strengths do not exist for a campaign
+    canvas.addEventListener('pointermove', (e) => { if (!app.dragging) showTip(e); });
+    canvas.addEventListener('pointerleave', () => { $('tip').hidden = true; });
+  }
+
   function drawOverlay(c, rr, t, now) {
     const W = overlay.clientWidth, H = overlay.clientHeight, dpr = rr.dpr;
     if (overlay.width !== Math.round(W * dpr) || overlay.height !== Math.round(H * dpr)) {
@@ -338,7 +442,8 @@ async function main() {
       c.fillText(cap.text, 14, H - 92);
       c.globalAlpha = 1;
     }
-    if ($('opt-numbers').checked) drawStrengths(c, rr, t);
+    if (!campaign && $('opt-numbers').checked) drawStrengths(c, rr, t);
+    if (campaign) drawForces(c, rr, t);
     if (!$('opt-labels').checked) return;
     // encirclement markers
     for (const L of meta.labels) {
@@ -390,7 +495,7 @@ async function main() {
     if (e.code === 'ArrowLeft') app.t = Math.max(0, Math.ceil(app.t) - step);
   });
   let drag = null;
-  canvas.addEventListener('pointerdown', (e) => { app.fly = null; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointerdown', (e) => { app.fly = null; app.dragging = true; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', (e) => {
     if (!drag) return;
     r.cam.x -= (e.clientX - drag.x) / r.cam.s;
@@ -398,7 +503,7 @@ async function main() {
     drag = { x: e.clientX, y: e.clientY };
     clampCamera(r);
   });
-  canvas.addEventListener('pointerup', () => { drag = null; });
+  canvas.addEventListener('pointerup', () => { drag = null; app.dragging = false; });
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const k = Math.exp(-e.deltaY * 0.0015);

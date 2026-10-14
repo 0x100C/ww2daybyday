@@ -11,7 +11,9 @@ export const COLORS = {
   partisan: [214, 98, 86],
 };
 
-const EPOCH = Date.UTC(1939, 8, 1);
+let EPOCH = Date.UTC(1939, 8, 1);
+// Campaign replays have their own start date (meta.epoch)
+export const setEpoch = (ms) => { EPOCH = ms; };
 export const dayOf = (iso) => (Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) - EPOCH) / 864e5;
 
 export function factionAt(unit, t) {
@@ -37,8 +39,16 @@ const UNIT_WARS = [
   ['IRN', 'WAL', '1941-08-25', '1941-08-31'],
 ];
 
-export function warMatrix(units, t) {
+export function warMatrix(units, t, wars) {
   const m = new Uint8Array(256 * 256);
+  if (wars) {
+    // campaign replay: wars come from the log as [tagA, tagB, startDay, endDay|null]
+    const id = Object.fromEntries(units.map((u) => [u.code, u.id]));
+    for (const [a, b, t0, t1] of wars) {
+      if (t >= t0 && (t1 == null || t < t1) && id[a] && id[b]) { m[id[a] * 256 + id[b]] = 255; m[id[b] * 256 + id[a]] = 255; }
+    }
+    return m;
+  }
   const fac = new Array(256).fill(null);
   for (const u of units) fac[u.id] = factionAt(u, t).f;
   const AX = new Set(['axis']);
