@@ -732,7 +732,7 @@ def build(log_path, states_path, out_dir):
         cells_list = [cells_of(int(sid)) for _t, sid in evs]
         allc = np.concatenate(cells_list)
         yy, xx = allc // Wd, allc % Wd
-        y0, y1, x0, x1 = max(0, yy.min() - 40), min(H, yy.max() + 41), max(0, xx.min() - 40), min(Wd, xx.max() + 41)
+        y0, y1, x0, x1 = max(0, yy.min() - 140), min(H, yy.max() + 141), max(0, xx.min() - 140), min(Wd, xx.max() + 141)
         shp = (y1 - y0, x1 - x0)
         mask = np.zeros(shp, bool); mask[yy - y0, xx - x0] = True
         smask = []                                               # per-state mask in the local window
@@ -753,6 +753,25 @@ def build(log_path, states_path, out_dir):
         for comp in range(1, nl + 1):
             cm = lab == comp
             seeds = cm & atk
+            corridor_path = None
+            if not seeds.any() and not is_tr:
+                # captured ground not touching the attacker's: an armoured thrust must have reached it, so run a
+                # narrow corridor from the nearest ground the attacker holds (least-cost, along roads and rail)
+                have = prev == new
+                if have.any():
+                    edge = have & ndimage.binary_dilation(~have, np.ones((3, 3)))
+                    st_ = list(zip(*np.nonzero(edge)))[:: max(1, int(edge.sum() // 3000))]
+                    mc = MCP_Geometric(np.where(land[y0:y1, x0:x1], cost_all, np.inf))
+                    cc, _ = mc.find_costs(st_)
+                    ccm = np.where(cm, cc, np.inf)
+                    if np.isfinite(ccm).any():
+                        end = np.unravel_index(int(np.argmin(ccm)), shp)
+                        if ccm[end] < 200:
+                            corridor_path = np.array(mc.traceback(end))
+                            cmask = np.zeros(shp, bool); cmask[corridor_path[:, 0], corridor_path[:, 1]] = True
+                            seeds = cm & ndimage.binary_dilation(cmask, np.ones((3, 3)), iterations=2)
+            if not seeds.any() and os.environ.get('HOI4_DEBUG'):
+                cy_, cx_ = np.nonzero(cm); print('NO-CONNECTION', cl['tag'], round(cl['first'], 1), 'comp cells', int(cm.sum()), 'lonlat', geo.grid_to_lonlat((cx_.mean() + x0) * geo.GRID_W / Wd, (cy_.mean() + y0) * geo.GRID_H / H), 'transfer', is_tr, flush=True)
             if not seeds.any():                                   # landing from the sea / paradrop: start at the coast
                 seeds = cm & ndimage.binary_dilation((~land[y0:y1, x0:x1]) & ~cm, np.ones((3, 3)))
             if not seeds.any():
@@ -783,11 +802,27 @@ def build(log_path, states_path, out_dir):
                     # window), the ground around the thrust is consolidated afterwards (second half)
                     rc = roadc[sm]
                     if rc.size > 200 and np.ptp(rc) > 1e-3:
-                        spear = spear_mask[sm]
+                        # only road ground that is linked to where the attacker enters the state runs ahead
+                        sp2 = spear_mask & sm
+                        lab_s, _ns = ndimage.label(sp2, np.ones((3, 3)))
+                        entry = ndimage.binary_dilation(sm & (dist <= lo + 0.2 * (hi - lo)), np.ones((3, 3)), iterations=3)
+                        hit = np.unique(lab_s[entry & (lab_s > 0)])
+                        spear = np.isin(lab_s, hit)[sm] if hit.size else np.zeros(rc.size, bool)
                         if spear.sum() >= 30:
                             u = np.where(spear, 0.5 * u, 0.5 + 0.5 * u)
                 arrival[sm] = ts + (tk[k] - ts) * u
             sel = cm.copy()
+            if corridor_path is not None and len(corridor_path) > 1:
+                n_p = len(corridor_path)
+                t_c = float(arrival[cm].min())
+                v_ = max(20.0, n_p / 6.0)                           # cells per day, at most six days to cross
+                pa = np.zeros(shp, np.float32); pm = np.zeros(shp, bool)
+                for i_, (py, px) in enumerate(corridor_path):
+                    pa[py, px] = t_c - (n_p - 1 - i_) / v_; pm[py, px] = True
+                _, (qi, qj) = ndimage.distance_transform_edt(~pm, return_indices=True)
+                cor = ndimage.binary_dilation(pm, np.ones((3, 3)), iterations=2) & land[y0:y1, x0:x1] & ~cm & (prev != new)
+                arrival[cor] = pa[qi[cor], qj[cor]]
+                sel = cm | cor
             if not is_tr:
                 # the front rarely stops exactly on a state border: it has pushed fingers into the next state
                 # (along roads and rail) that the log does not show because the state has not fallen yet
@@ -810,7 +845,7 @@ def build(log_path, states_path, out_dir):
                     if bleed.any():
                         # each finger starts when the state it grows from falls, and creeps out over a few days
                         arrival[bleed] = arrival[iy_[bleed], ix_[bleed]] + np.minimum(de[bleed] / 9.0, 4.0)
-                        sel = cm | bleed
+                        sel = sel | bleed
             sel = sel & (prev != new)                                 # cells already taken by an earlier advance stay as they are
             if not sel.any():
                 continue

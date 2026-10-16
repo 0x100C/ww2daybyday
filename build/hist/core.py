@@ -296,11 +296,37 @@ def path(*parts):
     return res
 
 
+def _meander(line, amp_km, seed):
+    """Mid-scale wander: long hand-drawn segments are cut into ~16 km pieces and the cut points are pushed
+    sideways by a smooth random amount (zero at the authored vertices), so a front never runs ruler-straight
+    for tens of kilometres. Deterministic per segment, so unchanged segments stay identical between keyframes."""
+    out = [line[0]]
+    for a, b in zip(line, line[1:]):
+        L = _dist((a[1], a[0]), (b[1], b[0]))
+        n = int(round(L / 16.0))
+        if n >= 2:
+            h = hash((round(a[0], 4), round(a[1], 4), round(b[0], 4), round(b[1], 4), seed, 77)) & 0xffffffff
+            rng = np.random.default_rng(h)
+            r = rng.uniform(-1, 1, n - 1)
+            r = np.convolve(np.concatenate([[0], r, [0]]), [0.3, 0.4, 0.3], mode="same")[1:-1]
+            kx = math.cos(math.radians((a[0] + b[0]) / 2))
+            dx, dy = (b[1] - a[1]) * kx, (b[0] - a[0])
+            ln = math.hypot(dx, dy) or 1
+            px, py = -dy / ln, dx / ln
+            for j in range(1, n):
+                t = j / n
+                w = r[j - 1] * amp_km / 111.3 * (1.0 + 0.5 * math.sin(math.pi * t))
+                out.append((a[0] + (b[0] - a[0]) * t + py * w, a[1] + (b[1] - a[1]) * t + px * w / kx))
+        out.append(b)
+    return out
+
+
 def jitter(line, amp_km=2.5, seg_km=6.0, seed=0):
     """Deterministic fractal roughening of an authored front line so that
     fronts carry the irregular texture of real positions. Each segment is
     seeded from its endpoints so identical segments stay identical between
     keyframes (no flicker)."""
+    line = _meander(list(line), amp_km * 2.4, seed)
     out = [line[0]]
     for a, b in zip(line, line[1:]):
         L = _dist((a[1], a[0]), (b[1], b[0]))
