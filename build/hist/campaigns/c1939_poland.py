@@ -65,7 +65,8 @@ def sep22_line():
 
 
 def soviet_zone_ring():
-    return sep28_line() + [(48.3, 30.0), (57.0, 30.0), (57.0, 23.6)]
+    # south to the Hungarian/Romanian frontier (the layer only touches Polish ground, so overshooting is safe)
+    return sep28_line() + [(47.0, 22.6), (47.0, 30.0), (57.0, 30.0), (57.0, 23.6)]
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +318,7 @@ def sep28_line_partial():
              (52.25, 23.55), (52.09, 23.60)]
     south = [(50.10, 23.90), (49.95, 23.85), (49.75, 23.70), (49.50, 23.45), (49.25, 23.20), (48.95, 22.95)]
     line = J(north, amp=3, seg=8, seed=8) + river(BUG, (52.08, 23.64), (50.40, 24.24)) + J(south, amp=3, seg=8, seed=9)
-    return line + [(48.0, 32.0), (57.0, 32.0), (57.0, 23.6)]
+    return line + [(47.0, 22.95), (47.0, 32.0), (57.0, 32.0), (57.0, 23.6)]
 
 
 def soviet_max_ring():
@@ -333,4 +334,4 @@ def soviet_max_ring():
     i0 = min(range(len(out)), key=lambda i: (out[i][0] - 52.08) ** 2 + (out[i][1] - 23.64) ** 2)
     i1 = min(range(len(out)), key=lambda i: (out[i][0] - 50.20) ** 2 + (out[i][1] - 23.05) ** 2)
     out = out[:i0] + J(west, amp=3, seg=8, seed=9) + out[i1:]
-    return out + [(48.3, 30.0), (57.0, 30.0), (57.0, 23.6)]
+    return out + [(47.0, 22.6), (47.0, 30.0), (57.0, 30.0), (57.0, 23.6)]

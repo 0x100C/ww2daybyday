@@ -485,6 +485,12 @@ def snap_to_borders(cs, start_tag, land, hist_units):
     tag = start_tag[cs]                                           # country holding each cell's state at the start
     tgt = np.zeros(cs.shape, np.uint8)
     n_fix = 0
+    # each HOI4 tag's home unit on the historical map: a tag whose own ground lies inside the unit is never
+    # moved out of it (both sides of a civil war live inside one historical country)
+    home = np.zeros(256, np.int32)
+    for t_ in np.unique(tag[tag > 0]):
+        hc = np.bincount(hist_units[(tag == t_) & land].ravel(), minlength=256)
+        home[t_] = int(hc.argmax()) if hc.sum() else 0
     for h in np.unique(hist_units):
         if h == 0:
             continue
@@ -496,7 +502,7 @@ def snap_to_borders(cs, start_tag, land, hist_units):
         if cnt[dom] / cnt.sum() < 0.7:
             continue
         tgt[m] = dom
-    bad = land & (tgt > 0) & (tag != tgt)
+    bad = land & (tgt > 0) & (tag != tgt) & (home[tag] != hist_units)
     for dom in np.unique(tgt[bad]):
         good = (tag == dom) & land
         if not good.any():
@@ -741,6 +747,8 @@ def build(log_path, states_path, out_dir):
         nz3 = ndimage.gaussian_filter(np.random.default_rng(int(cl["first"] * 11) + 5).standard_normal(shp).astype(np.float32), 3)
         nz3 /= np.percentile(np.abs(nz3), 99) + 1e-6
         nz = np.clip(0.75 * nz + 0.5 * nz3, -1.2, 1.2)             # ragged front: ~10 km and ~4 km irregularities
+        roadc = ndimage.gaussian_filter(mn, 2.0)
+        spear_mask = ndimage.binary_dilation(roadc >= np.percentile(roadc[roadc > 0], 82), np.ones((3, 3)), iterations=2) if (roadc > 0).any() else np.zeros(shp, bool)
         cost_all = (1.55 - 1.1 * mn ** 0.8) * (1.0 + 0.45 * np.clip(nz, -1, 1))   # roads ~3x faster than rough ground, plus ragged ground
         for comp in range(1, nl + 1):
             cm = lab == comp
@@ -770,6 +778,14 @@ def build(log_path, states_path, out_dir):
                     ts = min(max(ts, w0), tk[k] - 0.5)
                 lo, hi = np.percentile(d, 3), np.percentile(d, 97)
                 u = np.clip((d - lo) / max(hi - lo, 1e-6) + 0.30 * nz[sm], 0, 1)
+                if not is_tr:
+                    # a state does not fall evenly: armour runs ahead along roads and rail (first half of the
+                    # window), the ground around the thrust is consolidated afterwards (second half)
+                    rc = roadc[sm]
+                    if rc.size > 200 and np.ptp(rc) > 1e-3:
+                        spear = spear_mask[sm]
+                        if spear.sum() >= 30:
+                            u = np.where(spear, 0.5 * u, 0.5 + 0.5 * u)
                 arrival[sm] = ts + (tk[k] - ts) * u
             sel = cm.copy()
             if not is_tr:
