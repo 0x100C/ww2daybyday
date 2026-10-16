@@ -223,7 +223,8 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
                 v = [x * w for x in (a or b)]
             rows.append([k[0], k[1], v[0], v[1], v[2]])
         return rows
-    day_ts = list(np.arange(math.ceil(forces[0]["t"]), forces[-1]["t"] + 1e-6, 1.0)) if len(forces) > 1 else []
+    step_d = 1.0 if forces[-1]["t"] - forces[0]["t"] < 400 else 2.0      # long campaigns: every second day
+    day_ts = list(np.arange(math.ceil(forces[0]["t"]), forces[-1]["t"] + 1e-6, step_d)) if len(forces) > 1 else []
     ctl = base_ctl.copy()
     order_g = [np.argsort(arr, kind="stable") for _idx, _new, arr in adv_rec]
     sorted_arr = [arr[o] for (_i, _n, arr), o in zip(adv_rec, order_g)]
@@ -231,6 +232,8 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
     flat = ctl.ravel()
     for t in day_ts:
         t = float(t)
+        if int(t) % 50 < step_d:
+            print(f"  fronts: day {int(t)} of {int(day_ts[-1])}", flush=True)
         fs = {"t": t, "r": rows_at(t)}
         for g, (idx, new, _arr) in enumerate(adv_rec):
             n_ = int(np.searchsorted(sorted_arr[g], t, "right"))
