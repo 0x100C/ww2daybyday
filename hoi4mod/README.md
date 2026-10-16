@@ -69,6 +69,8 @@ node server.js
 
 Then open http://127.0.0.1:3847/?campaign=hoi4
 
+(The repository also holds a second replay, a 1936 to Aug 1941 game, in `data/hoi4_1936`: open http://127.0.0.1:3847/?campaign=hoi4_1936 . Build further campaigns into their own folder under `data/` and open them with `?campaign=<folder>`.)
+
 What you get:
 - **Territory:** each state's control is painted on the map and changes as it did in your game, as the same smooth advances the historical map uses: states captured by the same country sweep through as one continuous advance: the front starts moving into a state when the previous one fell and creeps along roads and railways until the log records the capture, and state edges are rounded. Borders, fronts and the white advance band all work.
 - **Wars and sides:** wars come from the log; colours follow the faction each country belongs to.
