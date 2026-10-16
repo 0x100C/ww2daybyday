@@ -253,7 +253,7 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
             sizes = np.bincount(lab_c.ravel())[1:]
             main = int(sizes.argmax()) + 1
             for c in range(1, n_c + 1):
-                if c == main or sizes[c - 1] < 45:
+                if c == main or sizes[c - 1] < 60:
                     continue
                 cm_ = lab_c == c
                 ring = ndimage.binary_dilation(cm_) & ~cm_
@@ -271,7 +271,8 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
                         yy_, xx_ = ds_cell(lo, la)
                         if cm_[yy_, xx_]:
                             men_in += row[4]
-                seen_pk.append((who, float(xs_[k_]), float(ys_[k_]), men_in))
+                if men_in >= 8000:                              # a real trapped army, not a leftover patch
+                    seen_pk.append((who, float(xs_[k_]), float(ys_[k_]), men_in))
         used_pk = set()
         for who, px_, py_, men_in in seen_pk:
             hit = None
@@ -550,6 +551,26 @@ def build(log_path, states_path, out_dir):
             t1 = min(end_t.get(a, 1e9), end_t.get(b, 1e9))
             wars.append([a, b, T(tt), None if t1 >= 1e9 else T(t1)])
 
+    # neutral countries that fight get a colour of their own (both sides of a civil war, minor powers)
+    MINOR = ["minor1", "minor2", "minor3", "minor4"]
+    first_war = {}
+    for wa, wb, w0, _w1 in wars:
+        for tg in (wa, wb):
+            first_war[tg] = min(first_war.get(tg, 1e9), w0)
+    for i, (tg, tw) in enumerate(sorted(first_war.items(), key=lambda kv: kv[1])):
+        if tg not in fac:
+            continue
+        d_iso = iso(day0, tw)
+        cls = "neutral"
+        for dt, c in fac[tg]:
+            if dt <= d_iso:
+                cls = c
+        if cls == "neutral":
+            fac[tg] = sorted([e for e in fac[tg] if e[0] != d_iso] + [(d_iso, MINOR[i % 4])])
+    for tg in fac:
+        if "Vichy" in camp["countries"].get(tg, {}).get("name", "") and fac[tg]:
+            fac[tg] = [(fac[tg][0][0], "vichy")] + [e for e in fac[tg][1:] if e[1] != "neutral"]
+
     # ---- base control and country
     first = dict(snaps[0]["states"])
     owner_of = dict(camp["owners"])
@@ -588,12 +609,34 @@ def build(log_path, states_path, out_dir):
         if kind == "c":
             sid, _frm, to = payload
             if cur.get(sid) != to:
-                admin = any(abs(t - ct) < 0.3 for ct in cap_t.get(cur.get(sid), []))
-                changes.append((t, sid, to, "transfer" if admin else "control")); cur[sid] = to
+                changes.append((t, sid, to, "control")); cur[sid] = to
         else:
             for sid, tag in payload.items():
                 if cur.get(sid) != tag:
                     changes.append((t, sid, tag, "snapshot")); cur[sid] = tag
+    # several moves of one state within the same hour (e.g. to the conqueror and straight back) are one net change
+    own = dict(first)
+    open_g = {}
+    merged = []
+    def flush(g):
+        if g["tag"] != g["before"]:
+            admin = g["src"] == "control" and any(abs(g["t"] - ct) < 0.3 for ct in cap_t.get(g["before"], []))
+            merged.append((g["t"], g["sid"], g["tag"], "transfer" if admin else g["src"]))
+    for t, sid, to, src in sorted(changes, key=lambda c: c[0]):
+        g = open_g.get(sid)
+        if g and t - g["last"] <= 0.05:
+            g["tag"] = to; g["last"] = t
+            continue
+        if g:
+            flush(g)
+        open_g[sid] = {"sid": sid, "t": t, "last": t, "before": own.get(sid), "tag": to, "src": src}
+        own[sid] = to
+        # `before` of a later group is the final owner of the earlier one
+        if g:
+            open_g[sid]["before"] = g["tag"]
+    for g in open_g.values():
+        flush(g)
+    changes = sorted(merged, key=lambda c: c[0])
     n_fix = sum(1 for c in changes if c[3] == "snapshot")
 
     # 2. captures by the same country within a few days form ONE advance, so the front flows through

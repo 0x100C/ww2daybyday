@@ -9,6 +9,11 @@ export const COLORS = {
   allied_c: [138, 169, 226],
   soviet: [186, 124, 101],
   partisan: [214, 98, 86],
+  // neutral countries that go to war (civil wars, minor powers) get their own colour so both sides show
+  minor1: [196, 170, 108],
+  minor2: [118, 166, 150],
+  minor3: [178, 138, 176],
+  minor4: [214, 150, 98],
 };
 
 let EPOCH = Date.UTC(1939, 8, 1);
