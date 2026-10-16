@@ -181,11 +181,17 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
     def lonlat(cx, cy):
         return geo.grid_to_lonlat((cx * DS + DS / 2) * geo.GRID_W / Wd, (cy * DS + DS / 2) * geo.GRID_H / H)
     war_list = [(uid[a], uid[b], w0, w1) for a, b, w0, w1 in wars]
+    _wc = {}
     def at_war(x, y, t):
-        for a, b, t0, t1 in war_list:
-            if ((a == x and b == y) or (a == y and b == x)) and t >= t0 and (t1 is None or t < t1):
-                return True
-        return False
+        key = round(float(t), 3)
+        pairs = _wc.get(key)
+        if pairs is None:
+            if len(_wc) > 4:
+                _wc.clear()
+            pairs = {(a, b) for a, b, t0, t1 in war_list if t >= t0 and (t1 is None or t < t1)}
+            pairs |= {(b, a) for a, b in pairs}
+            _wc[key] = pairs
+        return (x, y) in pairs
     sid_ll = {int(k): v for k, v in spos.items()}
     sids = np.array(sorted(sid_ll)); sll = np.array([sid_ll[i] for i in sids])
     sids_idx = {int(i): k for k, i in enumerate(sids)}
