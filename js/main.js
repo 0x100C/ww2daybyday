@@ -2,13 +2,15 @@ import { Renderer } from './renderer.js';
 import { loadTerritory, WindowBuffers } from './territory.js';
 import { GEO, mercX, millerY } from './geo.js';
 import { palette, warMatrix, dayOf, setEpoch } from './factions.js';
+import { prepareCampaign, openUploader } from './uploader.js';
 
 const $ = (id) => document.getElementById(id);
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 let EPOCH = Date.UTC(1939, 8, 1);
 // ?campaign=hoi4 replays a recorded Hearts of Iron IV campaign (data/hoi4/) instead of the 1939-45 history
 const CAMPAIGN = new URLSearchParams(location.search).get('campaign');
-const DATA = CAMPAIGN ? `data/${CAMPAIGN}` : 'data';
+// ?campaign=hoi4 plays the replay built from the user's own game.log (data/hoi4_user); other names open a folder of data/
+let DATA = CAMPAIGN === 'hoi4' ? 'data/hoi4_user' : CAMPAIGN ? `data/${CAMPAIGN}` : 'data';
 
 // Reference camera: Ireland to the Caspian, North Cape region to Libya.
 const REF_VIEW = { lon: 17.67, lat: 47.90, span: 76.56 };
@@ -46,6 +48,7 @@ function clampCamera(r) {
 }
 
 async function main() {
+  if (CAMPAIGN === 'hoi4' && !(await prepareCampaign())) return;
   const canvas = $('map');
   const overlay = $('overlay');
   const r = new Renderer(canvas, 'data/tiles');
@@ -475,6 +478,7 @@ async function main() {
     tip.style.top = Math.min(window.innerHeight - 120, e.clientY + 14) + 'px';
   }
   if (campaign) {
+    if (CAMPAIGN === 'hoi4') { $('new-log').hidden = false; $('new-log').addEventListener('click', openUploader); }
     $('lbl-divisions').hidden = false;
     $('opt-numbers').parentElement.lastChild.textContent = ' front troops';
     $('opt-divisions').checked = false;                     // front totals by default; per-state markers on request

@@ -2,3 +2,6 @@ build/cache/
 __pycache__/
 *.pyc
 node_modules/
+data/hoi4_user/
+data/hoi4_user.tmp/
+user/

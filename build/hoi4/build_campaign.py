@@ -31,12 +31,62 @@ from scipy import ndimage
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, ".."))
-sys.path.insert(0, os.path.join(HERE, "..", "hist"))
+
+import struct  # noqa: E402
+import gzip  # noqa: E402
 
 import geo  # noqa: E402
 import import_log  # noqa: E402
-from compiler import Group, sweep_fracs, write_stream  # noqa: E402
-from core import world  # noqa: E402
+
+
+class Group:
+    """One advance: cells (flat indices), their new owner and an 8-bit arrival fraction between t0 and t1."""
+    __slots__ = ("kind", "t0", "t1", "idx", "owner", "frac", "src")
+
+    def __init__(self, kind, t0, t1, idx, owner, frac, src=""):
+        self.kind, self.t0, self.t1 = kind, t0, t1
+        self.idx, self.owner, self.frac, self.src = idx, owner, frac, src
+
+
+def write_stream(path, base_country, base_control, groups, t_end):
+    """Territory stream read by js/territory.js (format WW2T, gzip)."""
+    H, W = base_country.shape
+    out = bytearray()
+    out += b"WW2T" + struct.pack("<IIIIf", 1, W, H, len(groups), t_end)
+    out += base_country.tobytes() + base_control.tobytes()
+    for g in groups:
+        idx = g.idx.astype(np.int64)
+        brk = np.flatnonzero(np.diff(idx) != 1) + 1
+        starts = np.concatenate([[0], brk])
+        ends = np.concatenate([brk, [idx.size]])
+        rs = idx[starts].astype(np.uint32)
+        rl = (ends - starts).astype(np.uint32)
+        out += struct.pack("<BBHffII", g.kind, 0, 0, g.t0, g.t1, rs.size, idx.size)
+        out += rs.tobytes() + rl.tobytes()
+        out += g.owner.astype(np.uint8).tobytes() + g.frac.astype(np.uint8).tobytes()
+        out += b"\0" * ((-len(out)) % 4)
+    with gzip.open(path, "wb", compresslevel=9) as f:
+        f.write(bytes(out))
+    return len(out)
+
+
+def progress(pct, msg):
+    """One line the page's upload screen reads to draw the progress bar."""
+    print(f"PROGRESS|{int(pct)}|{msg}", flush=True)
+
+
+_ASSETS = None
+
+
+def assets():
+    """land mask, real 1939 country borders and road/rail mobility (bundled in assets/world_lite.npz)."""
+    global _ASSETS
+    if _ASSETS is None:
+        z = np.load(os.path.join(HERE, "assets", "world_lite.npz"))
+        h, w = (int(v) for v in z["shape"])
+        land = np.unpackbits(z["land"], axis=1)[:, :w].astype(bool)
+        _ASSETS = {"land": land, "hist": z["hist"], "mob": (0.5 + z["mob"].astype(np.float32) / 255.0 * 0.8)}
+    return _ASSETS
 
 # capital cities (lat, lon) of HOI4 tags, used to fit the HOI4 map to the real world
 ANCHORS = {
@@ -233,7 +283,7 @@ def compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, l
     for t in day_ts:
         t = float(t)
         if int(t) % 50 < step_d:
-            print(f"  fronts: day {int(t)} of {int(day_ts[-1])}", flush=True)
+            progress(72 + 24 * (t - day_ts[0]) / max(1.0, day_ts[-1] - day_ts[0]), f"Front lines and troop totals: day {int(t)} of {int(day_ts[-1])}")
         fs = {"t": t, "r": rows_at(t)}
         for g, (idx, new, _arr) in enumerate(adv_rec):
             n_ = int(np.searchsorted(sorted_arr[g], t, "right"))
@@ -464,14 +514,16 @@ def snap_to_borders(cs, start_tag, land, hist_units):
 
 def build(log_path, states_path, out_dir):
     from datetime import datetime
+    progress(2, "Reading the log")
     camp = import_log.load(log_path)
+    progress(8, "Placing HOI4 states on the map")
     with open(states_path, encoding="utf-8") as f:
         st = json.load(f)
     cal = calibrate(st)
-    W_ = world()
-    land = W_.land
+    land = assets()["land"]
     H, Wd = land.shape
     cs = cell_states(st, cal, land)
+    progress(16, "Matching country borders to the real map")
     csf = cs.ravel()
 
     start = datetime.strptime(camp["start"], "%Y-%m-%d %H")
@@ -579,8 +631,7 @@ def build(log_path, states_path, out_dir):
         lut_ctl[int(sid)] = uid.get(tag, 0)
     for sid, tag in owner_of.items():
         lut_cty[int(sid)] = uid.get(tag, 0)
-    import political_1939 as P1939
-    cs, n_snap = snap_to_borders(cs, lut_ctl, land, P1939.build())
+    cs, n_snap = snap_to_borders(cs, lut_ctl, land, assets()["hist"])
     csf = cs.ravel()
     print(f"borders: {n_snap} cells re-assigned to follow the real 1939 country borders")
     base_ctl = lut_ctl[cs]; base_cty = lut_cty[cs]
@@ -655,8 +706,7 @@ def build(log_path, states_path, out_dir):
     clusters.sort(key=lambda c: c["first"])
 
     from skimage.graph import MCP_Geometric
-    from compiler import mobility
-    mob = mobility()
+    mob = assets()["mob"]
     ctl = base_ctl.copy()
     groups = []
     adv_rec = []                                                  # (cell index, new owner, arrival day) per advance
@@ -665,7 +715,9 @@ def build(log_path, states_path, out_dir):
         war_t0[(uid[wa], uid[wb])] = war_t0[(uid[wb], uid[wa])] = w0
     GAMMA = 3.0                                                   # >1 sharpens road/rail corridors into spearheads
     DEFAULT_SPAN, MIN_SPAN, MAX_SPAN_S = 8.0, 3.0, 20.0
-    for cl in clusters:
+    for ci, cl in enumerate(clusters):
+        if ci % 10 == 0:
+            progress(24 + 46 * ci / max(1, len(clusters)), f"Territory advances: {ci} of {len(clusters)}")
         new = uid.get(cl["tag"])
         evs = [(t, sid) for t, sid, _tag, _src in cl["ev"] if cells_of(int(sid)).size]
         is_tr = cl.get("transfer", False)
@@ -810,10 +862,12 @@ def build(log_path, states_path, out_dir):
     state_pos = {str(s): [round(spos[str(s)][0], 3), round(spos[str(s)][1], 3)] for s in used if str(s) in spos}
 
 
+    progress(71, "Front lines and troop totals")
     # ---- fronts: where two countries at war meet, with the troops on each side
     fronts, pocket_labels = compute_fronts(forces, base_ctl, adv_rec, wars, uid, spos, Wd, H, T, tags, land)
     print(f"fronts: {len(fronts)} tracks, {len(pocket_labels)} encirclements")
 
+    progress(97, "Writing files")
     # ---- meta and campaign files
     units = [{"id": uid[t], "code": t, "name": cname(t), "kind": "state", "factions": fac[t]} for t in tags]
     meta = {"epoch": day0.strftime("%Y-%m-%dT00:00:00Z"), "tEnd": t_end, "grid": {"w": int(Wd), "h": int(H)},
@@ -827,6 +881,7 @@ def build(log_path, states_path, out_dir):
                 "casualties": camp["casualties"], "leaders": camp["leaders"][-400:]}
     with open(os.path.join(out_dir, "campaign.json"), "w", encoding="utf-8") as f:
         json.dump(campaign, f, ensure_ascii=False)
+    progress(100, "Done")
     print(f"{len(units)} countries, {len(wars)} wars, {len(ev_out)} timeline events, {len(forces)} force snapshots "
           f"({sum(len(f['r']) for f in forces)} markers) -> {out_dir}")
 

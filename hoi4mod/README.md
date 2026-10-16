@@ -60,16 +60,22 @@ Several community sources say Ironman saves stay binary regardless of this setti
 
 ## Replay a campaign on the map
 
-You need two files: the `game.log` from your campaign and `hoi4_states.json` (see "Placing states on the map" below).
+One-time setup (you need Python 3 and Node.js):
 
 ```
-python3 build/hoi4/build_campaign.py "<...>/logs/game.log" data/hoi4_states.json
-node server.js
+pip install numpy scipy scikit-image
+node build/hoi4/extract_states.mjs "C:\Program Files (x86)\Steam\steamapps\common\Hearts of Iron IV"
 ```
 
-Then open http://127.0.0.1:3847/?campaign=hoi4
+(The second command writes `data/hoi4_states.json`; you pick that file once in the page.)
 
-(The repository also holds a second replay, a 1936 to Aug 1941 game, in `data/hoi4_1936`: open http://127.0.0.1:3847/?campaign=hoi4_1936 . Build further campaigns into their own folder under `data/` and open them with `?campaign=<folder>`.)
+Every time:
+
+1. `node server.js`
+2. Open http://127.0.0.1:3847/?campaign=hoi4
+3. Choose your `game.log` and press **Build replay**. A progress bar shows the build (about a minute for a few months of game, 10 to 15 minutes for five years). When it is done the replay starts playing. The 📂 button in the bar loads another log.
+
+The files are only ever used on your own computer. Samples without any setup: `?campaign=hoi4_demo` (Aug to Nov 1939) and `?campaign=hoi4_1936` (1936 to Aug 1941).
 
 What you get:
 - **Territory:** each state's control is painted on the map and changes as it did in your game, as the same smooth advances the historical map uses: states captured by the same country sweep through as one continuous advance: the front starts moving into a state when the previous one fell and creeps along roads and railways until the log records the capture, and state edges are rounded. Borders, fronts and the white advance band all work.
